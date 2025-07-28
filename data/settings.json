@@ -1,0 +1,8 @@
+{
+  "theme": "dark",
+  "window_size": "1400x900",
+  "sidebar_width": 280,
+  "auto_save": true,
+  "max_history": 100,
+  "default_negative_prompt": "blurry, low quality, distorted, deformed, ugly, bad anatomy"
+}
