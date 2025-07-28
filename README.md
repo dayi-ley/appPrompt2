@@ -1,12 +1,11 @@
 # AI Prompt Studio
 
-Un generador/organizador de prompts, diseñado específicamente para Stable Diffusion y otros modelos de generación de imágenes.
+Un generador/organizador de prompts, diseñado específicamente para Stable Diffusion para la generación de imágenes.
 
 ## 🎨 Características Principales
 
 ### Interfaz de Usuario
 - **Layout de tres secciones**: Sidebar izquierda (280px), grid de categorías superior, y sección de prompt inferior
-- **Tema oscuro moderno** con paleta de colores consistente
 - **Grid responsivo** con scroll vertical para las categorías
 - **Efectos hover suaves** y transiciones animadas
 
@@ -28,24 +27,15 @@ Un generador/organizador de prompts, diseñado específicamente para Stable Diff
 - **Exportación** en formatos JSON y TXT
 - **Gestión de personajes y escenas** con descripciones
 
-### Funcionalidades Avanzadas
-- **Atajos de teclado**: Ctrl+C (copiar), Ctrl+S (guardar), Ctrl+E (exportar)
-- **Negative prompt colapsable** con animación suave
-- **Feedback visual** en todas las acciones
-- **Navegación con Tab** entre inputs
 
 ## 🛠️ Requisitos del Sistema
 
 ### Software
 - Python 3.8 o superior
-- CustomTkinter 5.2.2
+- PyQt6==6.9.1
 - Pillow (PIL)
 - pyperclip
 
-### Hardware
-- Resolución mínima: 1280x720
-- Memoria RAM: 200MB mínimo
-- Espacio en disco: 50MB
 
 ## 📦 Instalación
 
@@ -65,13 +55,9 @@ python -m venv appPrompt
 # Windows
 appPrompt\Scripts\activate
 
-# Linux/Mac
-source appPrompt/bin/activate
-```
-
 4. **Instalar dependencias**:
 ```bash
-pip install customtkinter pillow pyperclip
+pip install PyQt6 pillow pyperclip
 ```
 
 5. **Ejecutar la aplicación**:
@@ -92,15 +78,12 @@ python main.py
 3. **Observa en tiempo real**: El prompt se actualiza automáticamente
 4. **Ajusta el negative prompt**: Expande la sección para personalizar
 
-### Guardando y Exportando
-- **Copiar**: Ctrl+C o botón "Copiar" para portapapeles
-- **Guardar**: Ctrl+S o botón "Guardar" para historial local
-- **Exportar**: Ctrl+E o botón "Exportar" para archivo JSON/TXT
-
 ## 📁 Estructura del Proyecto
 
 ```
 AppPrompts/
+│---appPrompt               # carpeta del entorno virtual del proyecto
+│   └── activate.bat        # Activación del entorno virtual
 ├── main.py                 # Punto de entrada de la aplicación
 ├── ui/                     # Componentes de interfaz
 │   ├── main_window.py      # Ventana principal
@@ -112,11 +95,11 @@ AppPrompts/
 │   └── prompt_generator.py # Generador de prompts
 ├── config/                 # Configuración
 │   └── settings.py         # Gestión de datos y configuraciones
-├── data/                   # Datos persistentes (se crea automáticamente)
+├── data/                   # Datos persistentes 
 │   ├── settings.json       # Configuraciones de la app
-│   ├── characters.json     # Personajes guardados
-│   ├── scenes.json         # Escenas guardadas
-│   └── prompt_history.json # Historial de prompts
+│   ├── characters          # Personajes guardados
+│   ├── categories.json     # Escenas guardadas
+│   └── tags.json           # Historial de prompts
 └── assets/                 # Recursos (iconos, imágenes)
 ```
 
@@ -130,61 +113,6 @@ AppPrompts/
 - **Éxito**: `#10b981`
 - **Error**: `#ef4444`
 
-## ⌨️ Atajos de Teclado
-
-| Acción | Atajo |
-|--------|-------|
-| Copiar prompt | `Ctrl+C` |
-| Guardar prompt | `Ctrl+S` |
-| Exportar prompt | `Ctrl+E` |
-| Navegar inputs | `Tab` |
-| Expandir negative prompt | `Enter` en el título |
-
-## 🔧 Configuración
-
-### Archivo de Configuración
-La aplicación crea automáticamente un archivo `data/settings.json` con las siguientes opciones:
-
-```json
-{
-  "theme": "dark",
-  "window_size": "1400x900",
-  "sidebar_width": 280,
-  "auto_save": true,
-  "max_history": 100,
-  "default_negative_prompt": "blurry, low quality, distorted, deformed, ugly, bad anatomy"
-}
-```
-
-### Personalización
-- **Tema**: Cambiar entre "dark" y "light"
-- **Tamaño de ventana**: Ajustar resolución inicial
-- **Ancho del sidebar**: Modificar el ancho del panel lateral
-- **Auto-guardado**: Habilitar/deshabilitar guardado automático
-- **Máximo historial**: Número máximo de prompts en el historial
-- **Negative prompt por defecto**: Texto predeterminado para negative prompts
-
-## 🚀 Características Técnicas
-
-### Rendimiento
-- **Debounce de 300ms** para generación de prompts
-- **Respuesta <100ms** para interacciones de UI
-- **Uso de memoria <200MB** en uso normal
-- **Virtual scrolling** para grandes cantidades de categorías
-
-### Arquitectura
-- **Componentes modulares** y reutilizables
-- **Separación clara** entre lógica y presentación
-- **Manejo de errores** consistente
-- **Patrones de diseño** limpios
-
-### Persistencia
-- **JSON** para intercambio y almacenamiento
-- **Retrocompatibilidad** en formatos de datos
-- **Validación de integridad** al cargar configuraciones
-- **Backup automático** de datos críticos
-
-
 
 ## 🐛 Reportar Problemas
 
@@ -196,12 +124,3 @@ Si encuentras algún problema o tienes una sugerencia, por favor:
    - Pasos para reproducir
    - Información del sistema
    - Capturas de pantalla (si aplica)
-
-## 📞 Soporte
-
-Para soporte técnico o preguntas:
-
-- 📧 Email: [tu-email@ejemplo.com]
-- 💬 Discord: [enlace-al-servidor]
-- 📖 Documentación: [enlace-a-la-doc]
-
