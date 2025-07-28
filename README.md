@@ -40,30 +40,29 @@ Un generador/organizador de prompts, diseñado específicamente para Stable Diff
 ## 📦 Instalación
 
 1. **Clonar el repositorio**:
-```bash
+
 git clone <repository-url>
 cd AppPrompts
-```
 
 2. **Crear entorno virtual**:
-```bash
+
 python -m venv appPrompt
-```
+
 
 3. **Activar el entorno virtual**:
-```bash
+
 # Windows
 appPrompt\Scripts\activate
 
 4. **Instalar dependencias**:
-```bash
+
 pip install PyQt6 pillow pyperclip
-```
+
 
 5. **Ejecutar la aplicación**:
-```bash
+
 python main.py
-```
+
 
 ## 🎯 Uso de la Aplicación
 
