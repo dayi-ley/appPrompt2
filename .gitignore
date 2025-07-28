@@ -1,0 +1,12 @@
+# Ignorar el entorno virtual
+appPrompt/
+
+# Archivos de Python que no deben subirse
+__pycache__/
+*.py[cod]
+
+# Configuración o archivos locales
+.env
+.DS_Store
+*.log
+*.sqlite3

@@ -1,6 +1,6 @@
 # AI Prompt Studio
 
-Un generador de prompts para IA con interfaz moderna y funcionalidades avanzadas, diseñado específicamente para Stable Diffusion y otros modelos de generación de imágenes.
+Un generador/organizador de prompts, diseñado específicamente para Stable Diffusion y otros modelos de generación de imágenes.
 
 ## 🎨 Características Principales
 
