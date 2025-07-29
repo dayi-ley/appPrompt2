@@ -136,6 +136,12 @@ class MainWindow(QMainWindow):
         """Conecta las señales entre componentes"""
         # Conectar actualización de prompt desde categorías
         self.category_grid.prompt_updated.connect(self.prompt_section.update_prompt)
+        
+        # Conectar selección de personaje con actualización de categorías
+        self.sidebar.character_defaults_selected.connect(self.category_grid.set_defaults_for_character)
+        
+        # Cuando se actualizan los valores de las categorías, actualizar el prompt
+        self.category_grid.prompt_updated.connect(self.prompt_section.update_prompt)
 
     def run(self):
         """Muestra la ventana"""

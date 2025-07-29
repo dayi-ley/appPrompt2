@@ -100,6 +100,12 @@ class SidebarFrame(QFrame):
         self.edit_character_btn.setFixedHeight(32)
         content_layout.addWidget(self.edit_character_btn)
         
+        # Botón para guardar el personaje actual
+        self.save_character_btn = QPushButton("Guardar personaje actual")
+        self.save_character_btn.setFixedHeight(32)
+        self.save_character_btn.clicked.connect(self.save_current_character)
+        content_layout.addWidget(self.save_character_btn)
+        
         # Espaciador
         content_layout.addStretch()
         
@@ -208,15 +214,38 @@ class SidebarFrame(QFrame):
 
     def on_character_change(self, choice):
         """Maneja el cambio de personaje"""
-        if choice.lower() == "kobayashi":
-            char_path = os.path.join("data", "characters", "kobayashi.json")
-            with open(char_path, "r", encoding="utf-8") as f:
-                kobayashi_defaults = json.load(f)
-            self.character_defaults_selected.emit(kobayashi_defaults)
-        elif choice in self.characters_data:
-            self.character_desc.setText(self.characters_data[choice])
-        else:
+        if not choice or choice == "Seleccionar personaje...":
             self.character_desc.setText("Selecciona un personaje para ver su descripción")
+            return
+            
+        # Normalizar el nombre del personaje para el archivo
+        char_filename = choice.lower().replace(" ", "_") + ".json"
+        char_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "characters", char_filename)
+        
+        # Verificar si existe el archivo del personaje
+        if os.path.exists(char_path):
+            # Cargar los valores existentes
+            with open(char_path, "r", encoding="utf-8") as f:
+                character_defaults = json.load(f)
+            self.character_defaults_selected.emit(character_defaults)
+            self.character_desc.setText(f"Personaje cargado: {choice}")
+        else:
+            # Si no existe, crear un nuevo archivo con los valores actuales
+            if choice.lower() not in ["seleccionar personaje...", "personaje 1", "personaje 2", "personaje 3"]:
+                # Obtener los valores actuales de las categorías
+                current_values = self.prompt_generator.get_active_categories()
+                
+                # Guardar en un nuevo archivo JSON
+                os.makedirs(os.path.dirname(char_path), exist_ok=True)
+                with open(char_path, "w", encoding="utf-8") as f:
+                    json.dump(current_values, f, ensure_ascii=False, indent=2)
+                
+                self.character_desc.setText(f"Nuevo personaje creado: {choice}")
+                # No emitimos la señal porque ya tenemos los valores cargados
+            elif choice in self.characters_data:
+                self.character_desc.setText(self.characters_data[choice])
+            else:
+                self.character_desc.setText("Selecciona un personaje para ver su descripción")
 
     def on_scene_change(self, choice):
         """Maneja el cambio de escena"""
@@ -224,3 +253,33 @@ class SidebarFrame(QFrame):
             self.scene_desc.setText(self.scenes_data[choice])
         else:
             self.scene_desc.setText("Selecciona una escena para ver su configuración")
+
+    def save_current_character(self):
+        """Guarda los valores actuales como un nuevo personaje o actualiza uno existente"""
+        current_character = self.character_dropdown.currentText()
+        
+        if current_character == "Seleccionar personaje...":
+            # Pedir al usuario que ingrese un nombre para el nuevo personaje
+            from PyQt6.QtWidgets import QInputDialog
+            name, ok = QInputDialog.getText(self, "Guardar personaje", "Nombre del personaje:")
+            if ok and name:
+                current_character = name
+                # Añadir a la lista desplegable si no existe
+                if self.character_dropdown.findText(name) == -1:
+                    self.character_dropdown.addItem(name)
+                self.character_dropdown.setCurrentText(name)
+            else:
+                return
+        
+        # Obtener los valores actuales de todas las categorías
+        current_values = self.prompt_generator.get_active_categories()
+        
+        # Guardar en un archivo JSON
+        char_filename = current_character.lower().replace(" ", "_") + ".json"
+        char_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "characters", char_filename)
+        
+        os.makedirs(os.path.dirname(char_path), exist_ok=True)
+        with open(char_path, "w", encoding="utf-8") as f:
+            json.dump(current_values, f, ensure_ascii=False, indent=2)
+        
+        self.character_desc.setText(f"Personaje guardado: {current_character}")

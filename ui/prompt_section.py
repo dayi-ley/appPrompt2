@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QTextEdit, QFrame, QSizePolicy)
+                             QPushButton, QTextEdit, QFrame, QSizePolicy, QFileDialog)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QKeySequence, QShortcut
 import pyperclip
 import json
+import os
 from datetime import datetime
 from config.settings import AppSettings
 
@@ -185,15 +186,39 @@ class PromptSectionFrame(QFrame):
             self.show_feedback(self.save_btn, "¡Guardado!")
 
     def export_prompt(self):
-        """Exporta el prompt en formato JSON"""
+        """Exporta el prompt en formato TXT con diálogo de guardado"""
         prompt_content = self.prompt_text.toPlainText()
         negative_content = self.negative_text.toPlainText()
         
         if prompt_content and prompt_content != "Aquí aparecerá el prompt generado...":
             try:
-                filename = self.settings.export_prompt(prompt_content, negative_content, "json")
-                self.show_feedback(self.export_btn, "¡Exportado!")
-                print(f"Prompt exportado a: {filename}")
+                # Generar nombre de archivo por defecto
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                default_filename = f"prompt_export_{timestamp}.txt"
+                
+                # Mostrar diálogo de guardado
+                filename, _ = QFileDialog.getSaveFileName(
+                    self,
+                    "Exportar Prompt",
+                    default_filename,
+                    "Archivos de texto (*.txt);;Todos los archivos (*.*)"
+                )
+                
+                if filename:  # Si el usuario no canceló
+                    # Asegurar que tenga extensión .txt
+                    if not filename.lower().endswith('.txt'):
+                        filename += '.txt'
+                    
+                    # Escribir el archivo
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        f.write(f"Prompt: {prompt_content}\n\n")
+                        if negative_content:
+                            f.write(f"Negative Prompt: {negative_content}\n\n")
+                        f.write(f"Exportado: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    
+                    self.show_feedback(self.export_btn, "¡Exportado!")
+                    print(f"Prompt exportado a: {filename}")
+                
             except Exception as e:
                 print(f"Error al exportar: {e}")
                 self.show_feedback(self.export_btn, "Error", error=True)

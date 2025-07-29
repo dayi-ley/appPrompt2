@@ -5,58 +5,54 @@ class PromptGenerator:
     """Generador de prompts en tiempo real basado en categorías activas."""
     
     def __init__(self):
-        # Orden lógico para las categorías
+        # Orden lógico basado en categories.json
         self.category_order = [
-            "Calidad técnica",
-            "Estilo artístico", 
-            "LORAS",
-            "Ángulo",
-            "Composición",
-            "Atmósfera",
-            "Fondo",
-            "Cabello",
-            "Ropa",
-            "Poses",
-            "Expresión facial",
-            "Orientación",
-            "Interacciones",
-            "Iluminación",
-            "Color",
-            "Textura",
-            "Accesorios",
-            "Emociones",
-            "Acción",
-            "Perspectiva",
-            "Profundidad",
-            "Tiempo",
-            "Clima",
-            "Estación",
-            "Edad",
-            "Género",
-            "Cultura",
-            "Profesión",
-            "Fantasy",
-            "Tecnología",
-            "Arquitectura",
-            "Naturaleza",
-            "Materiales",
-            "Patrones",
-            "Movimiento",
-            "Sonido",
-            "Temperatura",
-            "Humedad",
-            "Viento",
-            "Reflejos",
-            "Sombras",
-            "Contraste",
-            "Saturación",
-            "NSFW"
+            "angulo",
+            "calidad_tecnica", 
+            "estilo_artistico",
+            "composicion",
+            "atmosfera_vibe",
+            "loras_estilos_artistico",
+            "loras_detalles_mejoras",
+            "loras_modelos_especificos",
+            "loras_personaje",
+            "fondo",
+            "personaje",
+            "cabello_forma",
+            "cabello_color",
+            "cabello_accesorios",
+            "rostro_accesorios",
+            "ojos",
+            "expresion_facial_ojos",
+            "expresion_facial_mejillas",
+            "expresion_facial_boca",
+            "postura_cabeza",
+            "direccion_mirada_personaje",
+            "vestuario_general",
+            "vestuario_superior",
+            "vestuario_inferior",
+            "vestuario_accesorios",
+            "ropa_interior_superior",
+            "ropa_interior_inferior",
+            "ropa_interior_accesorios",
+            "tipo_de_cuerpo",
+            "rasgo_fisico_cuerpo",
+            "rasgo_fisico_piernas",
+            "pose_actitud_global",
+            "pose_brazos",
+            "pose_piernas",
+            "orientacion_personaje",
+            "actitud_emocion",
+            "nsfw",
+            "objetos_interaccion",
+            "objetos_escenario",
+            "mirada_espectador"
         ]
         
-        # Categorías activas y sus valores
+        # Diccionario para almacenar las categorías activas
         self.active_categories: Dict[str, str] = {}
         
-        # Términos duplicados detectados
+        # Set para detectar términos duplicados
         self.duplicate_terms: Set[str] = set()
         
     def update_category(self, category_name: str, value: str):
@@ -82,8 +78,8 @@ class PromptGenerator:
         # Limpiar espacios extra
         cleaned = re.sub(r'\s+', ' ', text.strip())
         
-        # Remover caracteres problemáticos (mantener solo letras, números, espacios, comas, puntos, guiones)
-        cleaned = re.sub(r'[^a-zA-Z0-9\s,.-]', '', cleaned)
+        # Permitir paréntesis, corchetes, símbolos comunes en prompts y caracteres especiales
+        cleaned = re.sub(r'[^a-zA-Z0-9\s,.()\[\]<>:_-]', '', cleaned)
         
         return cleaned
     
@@ -123,8 +119,13 @@ class PromptGenerator:
         # Eliminar duplicados
         unique_parts = self.remove_duplicates(prompt_parts)
         
-        # Unir con comas
-        final_prompt = ", ".join(unique_parts)
+        # Unir sin añadir comas adicionales (los valores ya tienen comas al final)
+        final_prompt = " ".join(unique_parts)
+        
+        # Limpiar espacios extra y comas duplicadas al final
+        final_prompt = re.sub(r',\s*,', ',', final_prompt)  # Eliminar comas duplicadas
+        final_prompt = re.sub(r'\s+', ' ', final_prompt)    # Normalizar espacios
+        final_prompt = final_prompt.strip()                 # Eliminar espacios al inicio/final
         
         return final_prompt
     
@@ -146,4 +147,4 @@ class PromptGenerator:
         return {
             "total_terms": len(terms),
             "total_characters": len(prompt)
-        } 
+        }

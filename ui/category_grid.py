@@ -53,6 +53,7 @@ class TagButton(QPushButton):
 
 class CategoryCard(QFrame):
     request_rename = pyqtSignal(str, str)  # (old_name, new_name)
+    value_changed = pyqtSignal()  # Nueva señal para cuando cambie el valor
 
     def __init__(self, name, icon=None, tags=None, prompt_generator=None, bg_color=DEFAULT_CARD_COLOR):
         super().__init__()
@@ -246,6 +247,7 @@ class CategoryCard(QFrame):
         if self.prompt_generator:
             validated_value = self.prompt_generator.validate_input(value)
             self.prompt_generator.update_category(self.category_name, validated_value)
+            self.value_changed.emit()  # Emitir señal cuando cambie el valor
 
     def toggle_edit_mode(self):
         if not self.is_editing:
@@ -426,6 +428,7 @@ class CategoryGridFrame(QWidget):
                 bg_color=DEFAULT_CARD_COLOR
             )
             card.request_rename.connect(self.rename_category)
+            card.value_changed.connect(self.on_card_update)  # Conectar nueva señal
             self.grid_layout.addWidget(card, row, col)
             self.cards.append(card)
         # Agrega la tarjeta especial al final
@@ -446,13 +449,19 @@ class CategoryGridFrame(QWidget):
             return name.lower().replace(" ", "").replace("(", "").replace(")", "").replace("_", "")
         for i in range(self.grid_layout.count()):
             card = self.grid_layout.itemAt(i).widget()
-            if not card:
+            if not card or not isinstance(card, CategoryCard):
                 continue
             card_norm = normalize(card.category_name)
             for key, value in defaults_dict.items():
                 if normalize(key) == card_norm:
                     card.input_field.setText(value)
+                    # Actualizar el prompt_generator directamente sin validate_input para preservar símbolos
+                    if self.prompt_generator:
+                        self.prompt_generator.update_category(card.category_name, value)
                     break
+        
+        # Emitir señal para actualizar el prompt después de cargar todos los valores
+        self.on_card_update()
 
     def show_add_category_dialog(self):
         name, ok = QInputDialog.getText(self, "Nueva categoría", "Nombre de la categoría:")
