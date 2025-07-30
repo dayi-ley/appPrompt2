@@ -1,23 +1,34 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QComboBox, QFrame, QSizePolicy)
+                             QPushButton, QComboBox, QFrame, QSizePolicy, QTabWidget)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor
+from ui.variations_panel import VariationsPanel
+from logic.variations_manager import VariationsManager
 import os
 import json
 
 class SidebarFrame(QFrame):
     character_defaults_selected = pyqtSignal(dict)
+    variation_applied = pyqtSignal(dict)  # Nueva señal para aplicar variaciones
     
     def __init__(self, prompt_generator):
         super().__init__()
         self.prompt_generator = prompt_generator
         self.is_collapsed = False
-        self.expanded_width = 240
+        self.expanded_width = 280  # Aumentado para acomodar el panel de variaciones
         self.collapsed_width = 60
+        
+        # Inicializar el manager de variaciones
+        self.variations_manager = VariationsManager()
+        
+        # Sistema de tracking de cambios
+        self.original_values_snapshot = {}  # Valores cuando se cargó la variación
+        self.changes_tracker = {}  # Registro de cambios específicos
         
         self.setup_ui()
         self.setup_styles()
         self.setup_data()
+        self.connect_variation_signals()
 
     def setup_ui(self):
         """Configura la interfaz del sidebar"""
@@ -49,67 +60,160 @@ class SidebarFrame(QFrame):
         self.subtitle_label.setStyleSheet("color: #a0a0a0;")
         layout.addWidget(self.subtitle_label)
         
-        # Contenedor para el contenido
+        # Contenedor para el contenido con pestañas
         self.content_widget = QWidget()
         content_layout = QVBoxLayout(self.content_widget)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(8)
         
+        # Widget de pestañas
+        self.tab_widget = QTabWidget()
+        
+        # Pestaña de Personajes
+        self.character_tab = QWidget()
+        self.setup_character_tab()
+        self.tab_widget.addTab(self.character_tab, "Personajes")
+        
+        # Pestaña de Variaciones
+        self.variations_panel = VariationsPanel(self.variations_manager, self.prompt_generator)
+        self.tab_widget.addTab(self.variations_panel, "Variaciones")
+        
+        content_layout.addWidget(self.tab_widget)
+        layout.addWidget(self.content_widget)
+
+    def setup_character_tab(self):
+        """Configura la pestaña de personajes"""
+        layout = QVBoxLayout(self.character_tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        
         # Selector de personaje
         self.character_label = QLabel("Personaje")
         self.character_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        content_layout.addWidget(self.character_label)
+        layout.addWidget(self.character_label)
         
         self.character_dropdown = QComboBox()
         self.character_dropdown.addItems([
             "Seleccionar personaje...",
-            "kobayashi",           # <-- Agrega aquí tu personaje real
+            "kobayashi",
+            "aria",
             "Personaje 1",
             "Personaje 2",
             "Personaje 3"
         ])
         self.character_dropdown.currentTextChanged.connect(self.on_character_change)
-        content_layout.addWidget(self.character_dropdown)
+        layout.addWidget(self.character_dropdown)
         
         # Descripción del personaje
         self.character_desc = QLabel("Selecciona un personaje para ver su descripción")
         self.character_desc.setFont(QFont("Segoe UI", 9))
         self.character_desc.setStyleSheet("color: #a0a0a0;")
         self.character_desc.setWordWrap(True)
-        content_layout.addWidget(self.character_desc)
+        layout.addWidget(self.character_desc)
         
         # Selector de escena
         self.scene_label = QLabel("Escena")
         self.scene_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        content_layout.addWidget(self.scene_label)
+        layout.addWidget(self.scene_label)
         
         self.scene_dropdown = QComboBox()
         self.scene_dropdown.addItems(["Seleccionar escena...", "Escena 1", "Escena 2", "Escena 3"])
         self.scene_dropdown.currentTextChanged.connect(self.on_scene_change)
-        content_layout.addWidget(self.scene_dropdown)
+        layout.addWidget(self.scene_dropdown)
         
         # Descripción de la escena
         self.scene_desc = QLabel("Selecciona una escena para ver su configuración")
         self.scene_desc.setFont(QFont("Segoe UI", 9))
         self.scene_desc.setStyleSheet("color: #a0a0a0;")
         self.scene_desc.setWordWrap(True)
-        content_layout.addWidget(self.scene_desc)
+        layout.addWidget(self.scene_desc)
         
         # Botón para gestionar personajes
         self.edit_character_btn = QPushButton("Gestionar personajes")
         self.edit_character_btn.setFixedHeight(32)
-        content_layout.addWidget(self.edit_character_btn)
+        layout.addWidget(self.edit_character_btn)
         
         # Botón para guardar el personaje actual
         self.save_character_btn = QPushButton("Guardar personaje actual")
         self.save_character_btn.setFixedHeight(32)
         self.save_character_btn.clicked.connect(self.save_current_character)
-        content_layout.addWidget(self.save_character_btn)
+        layout.addWidget(self.save_character_btn)
         
         # Espaciador
-        content_layout.addStretch()
+        layout.addStretch()
+
+    def connect_variation_signals(self):
+        """Conecta las señales del panel de variaciones"""
+        self.variations_panel.variation_loaded.connect(self.on_variation_loaded)
+        self.variations_panel.variation_saved.connect(self.on_variation_saved)
+
+    def on_variation_loaded(self, variation_data):
+        """Maneja cuando se carga una variación"""
+        # Guardar snapshot de los valores originales
+        self.original_values_snapshot = variation_data.get('values', {}).copy()
+        self.changes_tracker = {}  # Limpiar tracker de cambios
         
-        layout.addWidget(self.content_widget)
+        # Emitir señal para que el main_window aplique la variación
+        self.variation_applied.emit(variation_data)
+        
+        # Actualizar la descripción del personaje si es necesario
+        character_name = variation_data.get('character', '')
+        if character_name:
+            current_char = self.character_dropdown.currentText()
+            if current_char != character_name:
+                index = self.character_dropdown.findText(character_name)
+                if index >= 0:
+                    self.character_dropdown.setCurrentIndex(index)
+    
+    def track_category_change(self, category_name, old_value, new_value):
+        """Registra un cambio específico en una categoría"""
+        if category_name not in self.original_values_snapshot:
+            self.original_values_snapshot[category_name] = ""
+        
+        original = self.original_values_snapshot[category_name]
+        
+        # Calcular qué se añadió específicamente
+        original_items = set(item.strip() for item in original.split(',') if item.strip())
+        new_items = set(item.strip() for item in new_value.split(',') if item.strip())
+        
+        added_items = new_items - original_items
+        removed_items = original_items - new_items
+        
+        if added_items or removed_items:
+            self.changes_tracker[category_name] = {
+                'added': list(added_items),
+                'removed': list(removed_items),
+                'original': original,
+                'current': new_value
+            }
+        elif category_name in self.changes_tracker:
+            # Si no hay cambios, remover del tracker
+            del self.changes_tracker[category_name]
+
+    def on_variation_saved(self, character_name, variation_name):
+        """Maneja cuando se guarda una variación"""
+        # Actualizar el panel de variaciones para mostrar la nueva variación
+        self.variations_panel.refresh_variations()
+        
+        # Mostrar mensaje de confirmación
+        self.character_desc.setText(f"Variación '{variation_name}' guardada para {character_name}")
+
+    def get_current_character(self):
+        """Obtiene el personaje actualmente seleccionado"""
+        current = self.character_dropdown.currentText()
+        if current == "Seleccionar personaje...":
+            return None
+        return current
+
+    def set_current_character(self, character_name):
+        """Establece el personaje actual en el dropdown"""
+        index = self.character_dropdown.findText(character_name)
+        if index >= 0:
+            self.character_dropdown.setCurrentIndex(index)
+        else:
+            # Añadir el personaje si no existe
+            self.character_dropdown.addItem(character_name)
+            self.character_dropdown.setCurrentText(character_name)
 
     def setup_styles(self):
         """Configura los estilos del sidebar"""
@@ -283,3 +387,52 @@ class SidebarFrame(QFrame):
             json.dump(current_values, f, ensure_ascii=False, indent=2)
         
         self.character_desc.setText(f"Personaje guardado: {current_character}")
+
+    def save_current_variation(self, current_values, changes=None):
+        """Guarda la variación actual usando el diálogo de guardado"""
+        from .variations_panel import SaveVariationDialog
+        
+        # Obtener el personaje actual
+        current_character = self.get_current_character()
+        if not current_character:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self, 
+                "Sin personaje", 
+                "Debe seleccionar un personaje antes de guardar una variación."
+            )
+            return
+        
+        # Abrir diálogo para guardar variación (pasando también los cambios)
+        dialog = SaveVariationDialog(current_character, current_values, self, changes)
+        if dialog.exec() == dialog.DialogCode.Accepted:
+            variation_data = dialog.get_variation_data()
+            
+            # Guardar usando VariationsManager
+            success = self.variations_manager.save_variation(
+                current_character,
+                variation_data['name'],
+                variation_data
+            )
+            
+            if success:
+                # Actualizar el panel de variaciones
+                # En lugar de:
+                self.variations_panel.load_variations(current_character)
+                
+                # Usar:
+                self.variations_panel.load_variations()  # Sin parámetros
+                
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.information(
+                    self, 
+                    "Variación guardada", 
+                    f"La variación '{variation_data['name']}' se ha guardado correctamente."
+                )
+            else:
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    self, 
+                    "Error", 
+                    "No se pudo guardar la variación. Inténtelo de nuevo."
+                )

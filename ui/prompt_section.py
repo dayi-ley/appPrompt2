@@ -23,25 +23,25 @@ class PromptSectionFrame(QFrame):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
+        layout.setContentsMargins(16, 12, 16, 12)  # Reducido de 16 a 12
+        layout.setSpacing(8)  # Reducido de 10 a 8
         
-        # Título
+        # Título - tamaño reducido
         title_label = QLabel("Prompt generado")
-        title_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        title_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))  # Reducido de 14 a 12
         layout.addWidget(title_label)
         
-        # Textarea para el prompt
+        # Textarea para el prompt - altura y fuente reducidas
         self.prompt_text = QTextEdit()
-        self.prompt_text.setFixedHeight(120)
-        self.prompt_text.setFont(QFont("Courier New", 11))
+        self.prompt_text.setFixedHeight(80)  # Reducido de 120 a 80
+        self.prompt_text.setFont(QFont("Courier New", 10))  # Reducido de 11 a 10
         self.prompt_text.setPlaceholderText("Aquí aparecerá el prompt generado...")
         self.prompt_text.setReadOnly(False)  # Permitir edición manual
         layout.addWidget(self.prompt_text)
         
         # Botones de acción
         buttons_layout = QHBoxLayout()
-        buttons_layout.setSpacing(10)
+        buttons_layout.setSpacing(8)  # Reducido de 10 a 8
         
         self.copy_btn = QPushButton("Copiar")
         self.copy_btn.setFixedSize(100, 32)
@@ -70,7 +70,7 @@ class PromptSectionFrame(QFrame):
         self.negative_frame = QFrame()
         negative_layout = QVBoxLayout(self.negative_frame)
         negative_layout.setContentsMargins(0, 0, 0, 0)
-        negative_layout.setSpacing(6)
+        negative_layout.setSpacing(4)  # Reducido de 6 a 4
         
         # Botón para expandir/contraer
         self.negative_toggle = QPushButton("Negative Prompt ►")
@@ -80,9 +80,9 @@ class PromptSectionFrame(QFrame):
                 border: none;
                 color: #e0e0e0;
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 11px;  /* Reducido de 12px a 11px */
                 text-align: left;
-                padding: 8px;
+                padding: 6px;  /* Reducido de 8px a 6px */
             }
             QPushButton:hover {
                 background-color: #252525;
@@ -92,10 +92,10 @@ class PromptSectionFrame(QFrame):
         self.negative_toggle.clicked.connect(self.toggle_negative)
         negative_layout.addWidget(self.negative_toggle)
         
-        # Textarea para negative prompt
+        # Textarea para negative prompt - altura reducida
         self.negative_text = QTextEdit()
-        self.negative_text.setFixedHeight(80)
-        self.negative_text.setFont(QFont("Courier New", 10))
+        self.negative_text.setFixedHeight(60)  # Reducido de 80 a 60
+        self.negative_text.setFont(QFont("Courier New", 9))  # Reducido de 10 a 9
         default_negative = self.settings.get_setting("default_negative_prompt", 
                                                    "blurry, low quality, distorted, deformed, ugly, bad anatomy")
         self.negative_text.setPlainText(default_negative)

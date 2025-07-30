@@ -54,10 +54,6 @@ class MainWindow(QMainWindow):
         # Configurar tamaño responsivo después de crear todos los widgets
         self.setup_responsive_size()
 
-        self.sidebar.character_defaults_selected.connect(
-    self.category_grid.set_defaults_for_character
-)
-
     def setup_responsive_size(self):
         """Configura el tamaño de la ventana de manera responsiva"""
         # Obtener la pantalla disponible
@@ -134,14 +130,39 @@ class MainWindow(QMainWindow):
 
     def connect_signals(self):
         """Conecta las señales entre componentes"""
-        # Conectar actualización de prompt desde categorías
-        self.category_grid.prompt_updated.connect(self.prompt_section.update_prompt)
-        
-        # Conectar selección de personaje con actualización de categorías
+        # Conexión existente
         self.sidebar.character_defaults_selected.connect(self.category_grid.set_defaults_for_character)
         
-        # Cuando se actualizan los valores de las categorías, actualizar el prompt
+        # Nueva conexión para variaciones
+        self.sidebar.variation_applied.connect(self.apply_variation)
+        
+        # Conectar actualización de prompt
         self.category_grid.prompt_updated.connect(self.prompt_section.update_prompt)
+        self.category_grid.save_variation_requested.connect(self.sidebar.save_current_variation)
+        self.sidebar.variations_panel.character_changed.connect(self.sidebar.set_current_character)
+        
+        # Nueva conexión para tracking de cambios
+        self.category_grid.category_value_changed.connect(self.sidebar.track_category_change)
+        
+
+    def apply_variation(self, variation_data):
+        """Aplica una variación cargada desde el panel de variaciones"""
+        # Aplicar las categorías de la variación
+        categories = variation_data.get('categories', {})
+        
+        if categories:
+            self.category_grid.set_defaults_for_character(categories)
+            
+        # Establecer snapshot DESPUÉS de aplicar la variación
+        # para capturar los valores que realmente se cargaron
+        current_values = self.category_grid.get_current_values()
+        self.category_grid.set_previous_values_snapshot(current_values)
+        
+        # Actualizar el prompt
+        self.prompt_section.update_prompt()
+        
+        # Opcional: mostrar mensaje de confirmación
+        print(f"Variación aplicada: {variation_data.get('name', 'Sin nombre')}")
 
     def run(self):
         """Muestra la ventana"""

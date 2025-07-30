@@ -109,23 +109,28 @@ class PromptGenerator:
             if category in self.active_categories:
                 value = self.active_categories[category]
                 if value:
-                    prompt_parts.append(value)
+                    # Quitar comas al final para evitar dobles comas
+                    cleaned_value = value.rstrip(', ').strip()
+                    if cleaned_value:
+                        prompt_parts.append(cleaned_value)
         
         # Agregar categorías que no están en el orden predefinido
         for category, value in self.active_categories.items():
             if category not in self.category_order and value:
-                prompt_parts.append(value)
+                # Quitar comas al final para evitar dobles comas
+                cleaned_value = value.rstrip(', ').strip()
+                if cleaned_value:
+                    prompt_parts.append(cleaned_value)
         
         # Eliminar duplicados
         unique_parts = self.remove_duplicates(prompt_parts)
         
-        # Unir sin añadir comas adicionales (los valores ya tienen comas al final)
-        final_prompt = " ".join(unique_parts)
+        # Unir con comas y espacios de forma consistente
+        final_prompt = ", ".join(unique_parts)
         
-        # Limpiar espacios extra y comas duplicadas al final
-        final_prompt = re.sub(r',\s*,', ',', final_prompt)  # Eliminar comas duplicadas
-        final_prompt = re.sub(r'\s+', ' ', final_prompt)    # Normalizar espacios
-        final_prompt = final_prompt.strip()                 # Eliminar espacios al inicio/final
+        # Limpiar espacios extra
+        final_prompt = re.sub(r'\s+', ' ', final_prompt)
+        final_prompt = final_prompt.strip()
         
         return final_prompt
     
