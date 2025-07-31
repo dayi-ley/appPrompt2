@@ -35,10 +35,28 @@ class VariationsManager:
         """Carga los datos de variaciones desde el archivo"""
         try:
             with open(self.variations_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                content = f.read().strip()
+                if not content:  # Archivo vacío
+                    return {
+                        "characters": {},
+                        "metadata": {
+                            "version": "1.0",
+                            "created": datetime.now().isoformat(),
+                            "last_modified": datetime.now().isoformat()
+                        }
+                    }
+                return json.loads(content)
         except (FileNotFoundError, json.JSONDecodeError):
+            # En lugar de llamarse a sí mismo, devolver estructura inicial
             self.ensure_variations_file()
-            return self.load_variations_data()
+            return {
+                "characters": {},
+                "metadata": {
+                    "version": "1.0",
+                    "created": datetime.now().isoformat(),
+                    "last_modified": datetime.now().isoformat()
+                }
+            }
     
     def save_variations_data(self, data: Dict[str, Any]):
         """Guarda los datos de variaciones al archivo"""

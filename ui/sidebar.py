@@ -1,11 +1,13 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QComboBox, QFrame, QSizePolicy, QTabWidget)
+                             QPushButton, QComboBox, QFrame, QSizePolicy, QTabWidget,
+                             QListWidget, QListWidgetItem, QLineEdit)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor
 from ui.variations_panel import VariationsPanel
 from logic.variations_manager import VariationsManager
 import os
 import json
+from datetime import datetime
 
 class SidebarFrame(QFrame):
     character_defaults_selected = pyqtSignal(dict)
@@ -71,7 +73,7 @@ class SidebarFrame(QFrame):
         
         # Pestaña de Personajes
         self.character_tab = QWidget()
-        self.setup_character_tab()
+        self.setup_character_tab()  # Llamar al método
         self.tab_widget.addTab(self.character_tab, "Personajes")
         
         # Pestaña de Variaciones
@@ -83,65 +85,37 @@ class SidebarFrame(QFrame):
 
     def setup_character_tab(self):
         """Configura la pestaña de personajes"""
-        layout = QVBoxLayout(self.character_tab)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout = QVBoxLayout()
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
         
-        # Selector de personaje
-        self.character_label = QLabel("Personaje")
-        self.character_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        layout.addWidget(self.character_label)
+        # Campo de filtro de búsqueda
+        self.search_filter = QLineEdit()
+        self.search_filter.setPlaceholderText("🔍 Buscar personaje...")
+        self.search_filter.textChanged.connect(self.filter_characters)
+        layout.addWidget(self.search_filter)
         
+        # Lista de personajes
+        self.character_list = QListWidget()
+        self.character_list.itemClicked.connect(self.on_character_selected)
+        self.character_list.itemDoubleClicked.connect(self.on_character_double_clicked)
+        layout.addWidget(self.character_list)
+        
+        # Asignar el layout al tab
+        self.character_tab.setLayout(layout)
+        
+        # Lista para almacenar todos los personajes (para filtrado)
+        self.all_characters = []
+        
+        # Dropdown de personajes
         self.character_dropdown = QComboBox()
-        self.character_dropdown.addItems([
-            "Seleccionar personaje...",
-            "kobayashi",
-            "aria",
-            "Personaje 1",
-            "Personaje 2",
-            "Personaje 3"
-        ])
+        # Remover los elementos hardcodeados ya que setup_data() los cargará dinámicamente
         self.character_dropdown.currentTextChanged.connect(self.on_character_change)
-        layout.addWidget(self.character_dropdown)
         
-        # Descripción del personaje
-        self.character_desc = QLabel("Selecciona un personaje para ver su descripción")
-        self.character_desc.setFont(QFont("Segoe UI", 9))
-        self.character_desc.setStyleSheet("color: #a0a0a0;")
-        self.character_desc.setWordWrap(True)
-        layout.addWidget(self.character_desc)
+        # Habilitar doble clic para cargar personajes
+        self.character_dropdown.view().doubleClicked.connect(self.load_selected_character)
+    
         
-        # Selector de escena
-        self.scene_label = QLabel("Escena")
-        self.scene_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        layout.addWidget(self.scene_label)
-        
-        self.scene_dropdown = QComboBox()
-        self.scene_dropdown.addItems(["Seleccionar escena...", "Escena 1", "Escena 2", "Escena 3"])
-        self.scene_dropdown.currentTextChanged.connect(self.on_scene_change)
-        layout.addWidget(self.scene_dropdown)
-        
-        # Descripción de la escena
-        self.scene_desc = QLabel("Selecciona una escena para ver su configuración")
-        self.scene_desc.setFont(QFont("Segoe UI", 9))
-        self.scene_desc.setStyleSheet("color: #a0a0a0;")
-        self.scene_desc.setWordWrap(True)
-        layout.addWidget(self.scene_desc)
-        
-        # Botón para gestionar personajes
-        self.edit_character_btn = QPushButton("Gestionar personajes")
-        self.edit_character_btn.setFixedHeight(32)
-        layout.addWidget(self.edit_character_btn)
-        
-        # Botón para guardar el personaje actual
-        self.save_character_btn = QPushButton("Guardar personaje actual")
-        self.save_character_btn.setFixedHeight(32)
-        self.save_character_btn.clicked.connect(self.save_current_character)
-        layout.addWidget(self.save_character_btn)
-        
-        # Espaciador
-        layout.addStretch()
-
     def connect_variation_signals(self):
         """Conecta las señales del panel de variaciones"""
         self.variations_panel.variation_loaded.connect(self.on_variation_loaded)
@@ -192,11 +166,11 @@ class SidebarFrame(QFrame):
 
     def on_variation_saved(self, character_name, variation_name):
         """Maneja cuando se guarda una variación"""
-        # Actualizar el panel de variaciones para mostrar la nueva variación
-        self.variations_panel.refresh_variations()
+        # Actualizar la lista de personajes si es necesario
+        self.refresh_characters()
         
-        # Mostrar mensaje de confirmación
-        self.character_desc.setText(f"Variación '{variation_name}' guardada para {character_name}")
+        # Mostrar mensaje de confirmación en consola o log
+        print(f"Variación '{variation_name}' guardada para {character_name}")
 
     def get_current_character(self):
         """Obtiene el personaje actualmente seleccionado"""
@@ -215,224 +189,289 @@ class SidebarFrame(QFrame):
             self.character_dropdown.addItem(character_name)
             self.character_dropdown.setCurrentText(character_name)
 
+    def toggle_sidebar(self):
+        """Colapsa o expande el sidebar"""
+        if self.content_widget.isVisible():
+            # Colapsar
+            self.content_widget.hide()
+            self.subtitle_label.hide()
+            self.toggle_button.setText("▶")
+            self.setFixedWidth(60)
+        else:
+            # Expandir
+            self.content_widget.show()
+            self.subtitle_label.show()
+            self.toggle_button.setText("◀")
+            self.setMaximumWidth(16777215)  # Restaurar ancho máximo
+            self.setMinimumWidth(250)  # Ancho mínimo reducido
+            self.setFixedWidth(250)  # Ancho fijo más pequeño
+
     def setup_styles(self):
         """Configura los estilos del sidebar"""
         self.setStyleSheet("""
             QFrame {
-                background-color: #252525;
+                background-color: #2b2b2b;
                 border: 1px solid #404040;
                 border-radius: 8px;
             }
             QLabel {
                 color: #e0e0e0;
+                background: transparent;
             }
             QPushButton {
-                background-color: #6366f1;
-                color: white;
-                border: none;
-                border-radius: 6px;
+                background-color: #404040;
+                border: 1px solid #606060;
+                border-radius: 4px;
+                color: #e0e0e0;
+                padding: 4px 8px;
                 font-weight: bold;
-                font-size: 11px;
             }
             QPushButton:hover {
-                background-color: #4f46e5;
+                background-color: #505050;
+                border-color: #707070;
             }
-            QComboBox {
+            QPushButton:pressed {
+                background-color: #353535;
+            }
+            QTabWidget::pane {
+                border: 1px solid #404040;
+                background-color: #2b2b2b;
+                border-radius: 4px;
+            }
+            QTabWidget::tab-bar {
+                alignment: center;
+            }
+            QTabBar::tab {
+                background-color: #404040;
+                color: #e0e0e0;
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background-color: #6366f1;
+                color: white;
+            }
+            QTabBar::tab:hover {
+                background-color: #505050;
+            }
+            QLineEdit {
                 background-color: #1a1a1a;
                 border: 1px solid #404040;
                 border-radius: 6px;
                 color: #e0e0e0;
-                padding: 6px;
+                padding: 8px;
                 font-size: 11px;
             }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
+            QLineEdit:focus {
+                border-color: #6366f1;
             }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #e0e0e0;
-            }
-            QComboBox QAbstractItemView {
+            QListWidget {
                 background-color: #1a1a1a;
                 border: 1px solid #404040;
+                border-radius: 6px;
                 color: #e0e0e0;
-                selection-background-color: #6366f1;
+                padding: 4px;
+                font-size: 11px;
+                outline: none;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-radius: 4px;
+                margin: 1px;
+            }
+            QListWidget::item:hover {
+                background-color: #404040;
+            }
+            QListWidget::item:selected {
+                background-color: white;
+                color: black;
+                font-weight: bold;
+            }
+            QListWidget::item:selected:hover {
+                background-color: #f0f0f0;
+                color: black;
             }
         """)
 
     def setup_data(self):
-        """Configura los datos dummy"""
-        self.characters_data = {
-            "Personaje 1": "Protagonista principal con cabello rubio y ojos azules. Personalidad amigable y extrovertida.",
-            "Personaje 2": "Antagonista misterioso con cabello negro y ojos verdes. Personalidad reservada y calculadora.",
-            "Personaje 3": "Personaje secundario con cabello castaño y ojos marrones. Personalidad leal y protectora."
-        }
+        """Configura los datos de personajes desde archivos"""
+        # Cargar personajes desde la carpeta de personajes
+        characters_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "characters")
         
-        self.scenes_data = {
-            "Escena 1": "Escena de día en un bosque mágico con iluminación suave y atmósfera pacífica.",
-            "Escena 2": "Escena nocturna en una ciudad futurista con luces neón y atmósfera cyberpunk.",
-            "Escena 3": "Escena de atardecer en una playa tropical con iluminación cálida y atmósfera romántica."
-        }
-
-    def toggle_sidebar(self):
-        """Alterna entre sidebar colapsado y expandido"""
-        if self.is_collapsed:
-            self.expand_sidebar()
-        else:
-            self.collapse_sidebar()
-
-    def collapse_sidebar(self):
-        """Colapsa el sidebar"""
-        self.is_collapsed = True
-        self.setFixedWidth(self.collapsed_width)
-        self.toggle_button.setText("▶")
+        # Asegurarse de que el directorio existe
+        if not os.path.exists(characters_dir):
+            os.makedirs(characters_dir)
         
-        # Hacer el botón más alto para facilitar el clic
-        self.toggle_button.setFixedSize(40, 120)  # Más alto cuando está colapsado
+        # Limpiar la lista y el array de personajes
+        self.character_list.clear()
+        self.all_characters = []
         
-        # Ocultar todo el contenido
-        self.content_widget.hide()
-        self.subtitle_label.hide()
-        self.header_label.hide()  # Ocultar completamente el título
-        
-        # Solo mostrar el botón de toggle
-        self.toggle_button.show()
-
-    def expand_sidebar(self):
-        """Expande el sidebar"""
-        self.is_collapsed = False
-        self.setFixedWidth(self.expanded_width)
-        self.toggle_button.setText("◀")
-        
-        # Restaurar el tamaño normal del botón
-        self.toggle_button.setFixedSize(30, 25)  # Tamaño normal cuando está expandido
-        
-        # Mostrar todo el contenido
-        self.header_label.setText("AI Prompt Studio")
-        self.header_label.show()
-        self.subtitle_label.show()
-        self.content_widget.show()
-
-    def on_character_change(self, choice):
-        """Maneja el cambio de personaje"""
-        if not choice or choice == "Seleccionar personaje...":
-            self.character_desc.setText("Selecciona un personaje para ver su descripción")
-            return
+        # Cargar personajes desde la nueva estructura (carpetas)
+        for item in os.listdir(characters_dir):
+            item_path = os.path.join(characters_dir, item)
             
-        # Normalizar el nombre del personaje para el archivo
-        char_filename = choice.lower().replace(" ", "_") + ".json"
-        char_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "characters", char_filename)
-        
-        # Verificar si existe el archivo del personaje
-        if os.path.exists(char_path):
-            # Cargar los valores existentes
-            with open(char_path, "r", encoding="utf-8") as f:
-                character_defaults = json.load(f)
-            self.character_defaults_selected.emit(character_defaults)
-            self.character_desc.setText(f"Personaje cargado: {choice}")
-        else:
-            # Si no existe, crear un nuevo archivo con los valores actuales
-            if choice.lower() not in ["seleccionar personaje...", "personaje 1", "personaje 2", "personaje 3"]:
-                # Obtener los valores actuales de las categorías
-                current_values = self.prompt_generator.get_active_categories()
+            # Verificar si es una carpeta (nueva estructura)
+            if os.path.isdir(item_path):
+                # Buscar el archivo JSON con el mismo nombre que la carpeta
+                json_filename = f"{item}.json"
+                json_path = os.path.join(item_path, json_filename)
                 
-                # Guardar en un nuevo archivo JSON
-                os.makedirs(os.path.dirname(char_path), exist_ok=True)
-                with open(char_path, "w", encoding="utf-8") as f:
-                    json.dump(current_values, f, ensure_ascii=False, indent=2)
-                
-                self.character_desc.setText(f"Nuevo personaje creado: {choice}")
-                # No emitimos la señal porque ya tenemos los valores cargados
-            elif choice in self.characters_data:
-                self.character_desc.setText(self.characters_data[choice])
-            else:
-                self.character_desc.setText("Selecciona un personaje para ver su descripción")
-
-    def on_scene_change(self, choice):
-        """Maneja el cambio de escena"""
-        if choice in self.scenes_data:
-            self.scene_desc.setText(self.scenes_data[choice])
-        else:
-            self.scene_desc.setText("Selecciona una escena para ver su configuración")
-
-    def save_current_character(self):
-        """Guarda los valores actuales como un nuevo personaje o actualiza uno existente"""
-        current_character = self.character_dropdown.currentText()
-        
-        if current_character == "Seleccionar personaje...":
-            # Pedir al usuario que ingrese un nombre para el nuevo personaje
-            from PyQt6.QtWidgets import QInputDialog
-            name, ok = QInputDialog.getText(self, "Guardar personaje", "Nombre del personaje:")
-            if ok and name:
-                current_character = name
-                # Añadir a la lista desplegable si no existe
-                if self.character_dropdown.findText(name) == -1:
-                    self.character_dropdown.addItem(name)
-                self.character_dropdown.setCurrentText(name)
-            else:
-                return
-        
-        # Obtener los valores actuales de todas las categorías
-        current_values = self.prompt_generator.get_active_categories()
-        
-        # Guardar en un archivo JSON
-        char_filename = current_character.lower().replace(" ", "_") + ".json"
-        char_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "characters", char_filename)
-        
-        os.makedirs(os.path.dirname(char_path), exist_ok=True)
-        with open(char_path, "w", encoding="utf-8") as f:
-            json.dump(current_values, f, ensure_ascii=False, indent=2)
-        
-        self.character_desc.setText(f"Personaje guardado: {current_character}")
-
-    def save_current_variation(self, current_values, changes=None):
-        """Guarda la variación actual usando el diálogo de guardado"""
-        from .variations_panel import SaveVariationDialog
-        
-        # Obtener el personaje actual
-        current_character = self.get_current_character()
-        if not current_character:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.warning(
-                self, 
-                "Sin personaje", 
-                "Debe seleccionar un personaje antes de guardar una variación."
-            )
-            return
-        
-        # Abrir diálogo para guardar variación (pasando también los cambios)
-        dialog = SaveVariationDialog(current_character, current_values, self, changes)
-        if dialog.exec() == dialog.DialogCode.Accepted:
-            variation_data = dialog.get_variation_data()
+                if os.path.exists(json_path):
+                    try:
+                        # Leer el archivo JSON para obtener metadatos
+                        with open(json_path, "r", encoding="utf-8") as f:
+                            character_data = json.load(f)
+                        
+                        # Obtener el nombre del personaje y fecha de creación
+                        if "metadata" in character_data and "character_name" in character_data["metadata"]:
+                            character_name = character_data["metadata"]["character_name"]
+                            
+                            # Obtener y formatear la fecha de creación
+                            if "created_date" in character_data["metadata"]:
+                                created_date_str = character_data["metadata"]["created_date"]
+                                try:
+                                    # Parsear la fecha ISO
+                                    created_date = datetime.fromisoformat(created_date_str.replace('Z', '+00:00'))
+                                    formatted_date = created_date.strftime("%d/%m/%Y")
+                                    display_text = f"{character_name} - {formatted_date}"
+                                except ValueError:
+                                    display_text = f"{character_name} - Fecha inválida"
+                            else:
+                                display_text = f"{character_name} - Sin fecha"
+                        else:
+                            # Fallback al nombre de la carpeta
+                            character_name = item.replace('_', ' ').title()
+                            display_text = f"{character_name} - Sin metadatos"
+                        
+                        # Agregar al array de personajes
+                        self.all_characters.append({
+                            'name': character_name,
+                            'display_text': display_text
+                        })
+                        
+                    except (json.JSONDecodeError, FileNotFoundError) as e:
+                        # En caso de error, usar el nombre de la carpeta
+                        character_name = item.replace('_', ' ').title()
+                        display_text = f"{character_name} - Error al cargar"
+                        self.all_characters.append({
+                            'name': character_name,
+                            'display_text': display_text
+                        })
             
-            # Guardar usando VariationsManager
-            success = self.variations_manager.save_variation(
-                current_character,
-                variation_data['name'],
-                variation_data
-            )
+            # También manejar archivos JSON directos (estructura antigua)
+            elif item.endswith('.json'):
+                json_path = os.path.join(characters_dir, item)
+                try:
+                    with open(json_path, "r", encoding="utf-8") as f:
+                        character_data = json.load(f)
+                    
+                    character_name = item[:-5].replace('_', ' ').title()
+                    display_text = f"{character_name} - Formato antiguo"
+                    
+                    self.all_characters.append({
+                        'name': character_name,
+                        'display_text': display_text
+                    })
+                    
+                except (json.JSONDecodeError, FileNotFoundError):
+                    pass
+        
+        # Ordenar personajes alfabéticamente
+        self.all_characters.sort(key=lambda x: x['name'])
+        
+        # Mostrar todos los personajes inicialmente
+        self.filter_characters("")
+
+    def on_character_change(self, character_name):
+        """Maneja el cambio de personaje seleccionado"""
+        if character_name and character_name != "Seleccionar personaje...":
+            # Buscar el archivo del personaje
+            characters_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "characters")
             
-            if success:
-                # Actualizar el panel de variaciones
-                # En lugar de:
-                self.variations_panel.load_variations(current_character)
+            # Intentar cargar desde la nueva estructura (carpeta)
+            character_folder = os.path.join(characters_dir, character_name.lower().replace(' ', '_'))
+            json_path = os.path.join(character_folder, f"{character_name.lower().replace(' ', '_')}.json")
+            
+            # Si no existe, intentar con la estructura antigua
+            if not os.path.exists(json_path):
+                json_path = os.path.join(characters_dir, f"{character_name.lower().replace(' ', '_')}.json")
+            
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    character_data = json.load(f)
                 
-                # Usar:
-                self.variations_panel.load_variations()  # Sin parámetros
-                
-                from PyQt6.QtWidgets import QMessageBox
-                QMessageBox.information(
-                    self, 
-                    "Variación guardada", 
-                    f"La variación '{variation_data['name']}' se ha guardado correctamente."
-                )
-            else:
-                from PyQt6.QtWidgets import QMessageBox
-                QMessageBox.critical(
-                    self, 
-                    "Error", 
-                    "No se pudo guardar la variación. Inténtelo de nuevo."
-                )
+                # Emitir los datos del personaje
+                if "metadata" in character_data and "categories" in character_data:
+                    # Nuevo formato con metadatos
+                    self.character_defaults_selected.emit(character_data["categories"])
+                else:
+                    # Formato antiguo sin estructura de metadatos
+                    self.character_defaults_selected.emit(character_data)
+                    
+            except (json.JSONDecodeError, FileNotFoundError) as e:
+                print(f"Error al cargar {character_name}: {str(e)}")
+        else:
+            self.character_desc.setText(f"❌ No se encontraron datos para {character_name}")
+
+    def load_selected_character(self, index):
+        """Carga el personaje seleccionado al hacer doble clic"""
+        character_name = self.character_dropdown.itemText(index.row())
+        if character_name and character_name != "Seleccionar personaje...":
+            self.on_character_change(character_name)
+    
+    def refresh_characters(self):
+        """Refresca la lista de personajes desde los archivos"""
+        current_selection = None
+        if self.character_list.currentItem():
+            current_selection = self.character_list.currentItem().data(Qt.ItemDataRole.UserRole)
+        
+        self.setup_data()
+        
+        # Intentar mantener la selección actual si existe
+        if current_selection:
+            for i in range(self.character_list.count()):
+                item = self.character_list.item(i)
+                if item.data(Qt.ItemDataRole.UserRole) == current_selection:
+                    self.character_list.setCurrentItem(item)
+                    break
+    
+    def add_character_to_dropdown(self, character_name=None):
+        """Añade un personaje a la lista o refresca la lista completa"""
+        self.refresh_characters()
+        
+        # Si se proporciona un nombre de personaje, seleccionarlo
+        if character_name:
+            for i in range(self.character_list.count()):
+                item = self.character_list.item(i)
+                if item.data(Qt.ItemDataRole.UserRole) == character_name:
+                    self.character_list.setCurrentItem(item)
+                    self.on_character_change(character_name)
+                    break
+
+    def filter_characters(self, text):
+        """Filtra los personajes según el texto de búsqueda"""
+        self.character_list.clear()
+        
+        for character_data in self.all_characters:
+            character_name = character_data['name']
+            display_text = character_data['display_text']
+            
+            # Filtrar por nombre (case insensitive)
+            if text.lower() in character_name.lower():
+                item = QListWidgetItem(display_text)
+                item.setData(Qt.ItemDataRole.UserRole, character_name)
+                self.character_list.addItem(item)
+    
+    def on_character_selected(self, item):
+        """Maneja la selección de un personaje en la lista"""
+        # Solo para selección, sin acción específica
+        pass
+    
+    def on_character_double_clicked(self, item):
+        """Maneja el doble clic para cargar un personaje"""
+        character_name = item.data(Qt.ItemDataRole.UserRole)
+        if character_name:
+            self.on_character_change(character_name)
+            

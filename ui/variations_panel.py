@@ -36,7 +36,7 @@ class VariationsPanel(QWidget):
         
         # Árbol de variaciones
         self.variations_tree = QTreeWidget()
-        self.variations_tree.setHeaderLabels(["Personaje/Variación", "Descripción"])
+        self.variations_tree.setHeaderLabels(["Personaje/Variación"])  # Solo una columna
         self.variations_tree.setRootIsDecorated(True)
         self.variations_tree.setAlternatingRowColors(True)
         self.variations_tree.itemDoubleClicked.connect(self.load_variation_on_double_click)
@@ -111,8 +111,11 @@ class VariationsPanel(QWidget):
                 characters = [character_name] if character_name in characters else []
             
             for character in characters:
-                # Obtener variaciones del personaje
-                variations = self.variations_manager.get_character_variations(character)
+                # Obtener datos del personaje
+                character_data = self.variations_manager.get_character_variations(character)
+                
+                # Acceder específicamente a las variaciones
+                variations = character_data.get("variations", {})
                 
                 if variations:  # Solo mostrar si tiene variaciones
                     # Crear nodo padre para el personaje
@@ -126,17 +129,13 @@ class VariationsPanel(QWidget):
                         variation_item = QTreeWidgetItem(character_item)
                         variation_item.setText(0, variation_name)
                         
-                        # Descripción basada en las categorías
-                        description = self.get_variation_description(variation_data)
-                        variation_item.setText(1, description)
-                        
                         # Guardar datos para fácil acceso
                         variation_item.setData(0, Qt.ItemDataRole.UserRole, {
                             'character': character,
                             'variation_name': variation_name,
                             'data': variation_data
                         })
-                    
+                
         except Exception as e:
             print(f"Error cargando variaciones: {e}")
 

@@ -65,26 +65,18 @@ class CategoryCard(QFrame):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(4)
         
-        # --- Título con icono e ícono de editar/guardar ---
+        # --- Layout horizontal para título y botón de editar ---
         title_layout = QHBoxLayout()
-        title_layout.setSpacing(6)
-    
-        # Icono pequeño a la izquierda SOLO para "Angulo"
-        icon_label = QLabel()
-        icon_label.setFixedSize(20, 20)
-        if name.strip().lower() == "angulo":
-            angle_icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "assets", "icons", "angle.png")
-            icon_label.setPixmap(QPixmap(angle_icon_path).scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        title_layout.addWidget(icon_label)
-    
-        # Título de la categoría (editable solo si is_editing)
+        title_layout.setSpacing(8)
+        
+        # Título de la categoría
         self.title_label = QLabel(name)
         self.title_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        self.title_label.setStyleSheet("color: #e0e0e0;")
         self.title_label.setWordWrap(True)
-        self.title_label.setStyleSheet("color: #e0e0e0;")  # Asegura que el texto sea visible
         title_layout.addWidget(self.title_label, 1)
-    
-        # Campo de edición oculto por defecto
+        
+        # Campo de edición (oculto por defecto)
         self.title_edit = QLineEdit(name)
         self.title_edit.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         self.title_edit.hide()
@@ -92,9 +84,9 @@ class CategoryCard(QFrame):
         self.title_edit.textChanged.connect(self.on_title_edited)
         title_layout.addWidget(self.title_edit, 1)
     
-        # Botón de editar/guardar
+        # Botón de editar/guardar - SIN ICONO INICIAL
         self.edit_btn = QToolButton()
-        self.edit_btn.setIcon(QIcon(ICON_EDIT))
+        self.edit_btn.setText("✏️")  # Usar emoji como fallback
         self.edit_btn.setToolTip("Editar nombre de la categoría")
         self.edit_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.edit_btn.setFixedSize(22, 22)
@@ -231,37 +223,53 @@ class CategoryCard(QFrame):
         value = self.input_field.text()
         if self.prompt_generator:
             validated_value = self.prompt_generator.validate_input(value)
-            self.prompt_generator.update_category(self.category_name, validated_value)
+            # En el método donde se llama a update_category, agregar el mapeo:
+            # Convertir nombre de categoría al formato snake_case
+            snake_case_name = self.category_name.lower().replace(" ", "_")
+            self.prompt_generator.update_category(snake_case_name, validated_value)
             self.value_changed.emit()  # Emitir señal cuando cambie el valor
 
     def toggle_edit_mode(self):
+        """Alterna entre modo edición y modo vista"""
         if not self.is_editing:
-            # Cambia a modo edición
+            # Entrar en modo edición
             self.is_editing = True
-            self.unsaved_changes = False
             self.title_label.hide()
             self.title_edit.show()
             self.title_edit.setFocus()
-            self.edit_btn.setIcon(QIcon(ICON_SAVE))
-            self.edit_btn.setToolTip("Guardar nombre de la categoría")
-            self.title_edit.setStyleSheet("")  # Quita subrayado si lo hubiera
+            self.title_edit.selectAll()
+            
+            # Usar solo emoji/texto - NO crear QIcon
+            self.edit_btn.setText("💾")
+            self.edit_btn.setToolTip("Guardar cambios")
         else:
-            # Intenta guardar
-            self.save_category_name()
+            # Salir del modo edición sin guardar
+            self.cancel_edit_mode()
 
-    def save_category_name(self):
-        new_name = self.title_edit.text().strip()
-        if new_name and new_name != self.category_name:
-            self.request_rename.emit(self.category_name, new_name)
+    def cancel_edit_mode(self):
+        """Cancela el modo edición"""
         self.is_editing = False
         self.unsaved_changes = False
-        self.title_label.setText(new_name)
-        self.category_name = new_name
-        self.title_label.show()
         self.title_edit.hide()
-        self.edit_btn.setIcon(QIcon(ICON_EDIT))
+        self.title_label.show()
+        self.title_edit.setText(self.category_name)  # Restaurar texto original
+        self.title_edit.setStyleSheet("")  # Limpiar estilos de error
+        
+        # Usar solo emoji/texto - NO crear QIcon
+        self.edit_btn.setText("✏️")
         self.edit_btn.setToolTip("Editar nombre de la categoría")
         self.title_edit.setStyleSheet("")
+
+    def save_category_name(self):
+        """Guarda el nuevo nombre de la categoría"""
+        new_name = self.title_edit.text().strip()
+        if new_name and new_name != self.category_name:
+            old_name = self.category_name
+            self.category_name = new_name
+            self.title_label.setText(new_name)
+            self.request_rename.emit(old_name, new_name)
+        
+        self.cancel_edit_mode()
 
     def on_title_edited(self):
         # Si el usuario edita pero no guarda, subraya en rojo

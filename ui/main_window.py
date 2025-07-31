@@ -130,46 +130,25 @@ class MainWindow(QMainWindow):
 
     def connect_signals(self):
         """Conecta las señales entre componentes"""
-        # Conexión existente
-        self.sidebar.character_defaults_selected.connect(self.category_grid.set_defaults_for_character)
+        # Conectar señales del category_grid al prompt_section
+        self.category_grid.prompt_updated.connect(self.prompt_section.update_prompt)
         
-        # Nueva conexión para variaciones
+        # Conectar señales del sidebar
+        self.sidebar.character_defaults_selected.connect(self.category_grid.apply_character_defaults)
         self.sidebar.variation_applied.connect(self.apply_variation)
         
-        # Conectar actualización de prompt
-        self.category_grid.prompt_updated.connect(self.prompt_section.update_prompt)
-        self.category_grid.save_variation_requested.connect(self.sidebar.save_current_variation)
-        self.sidebar.variations_panel.character_changed.connect(self.sidebar.set_current_character)
-        
-        # Nueva conexión para tracking de cambios
+        # Conectar señales de variaciones
+        # Eliminar esta línea:
+        # self.category_grid.save_variation_requested.connect(self.sidebar.variations_panel.save_current_variation)
         self.category_grid.category_value_changed.connect(self.sidebar.track_category_change)
         
-
+        # Conectar señal para actualizar dropdown de personajes
+        self.category_grid.character_saved.connect(self.sidebar.add_character_to_dropdown)
+    
     def apply_variation(self, variation_data):
-        """Aplica una variación cargada desde el panel de variaciones"""
-        # Aplicar las categorías de la variación
-        categories = variation_data.get('categories', {})
-        
-        if categories:
-            self.category_grid.set_defaults_for_character(categories)
-            
-        # Establecer snapshot DESPUÉS de aplicar la variación
-        # para capturar los valores que realmente se cargaron
-        current_values = self.category_grid.get_current_values()
-        self.category_grid.set_previous_values_snapshot(current_values)
-        
-        # Actualizar el prompt
-        self.prompt_section.update_prompt()
-        
-        # Opcional: mostrar mensaje de confirmación
-        print(f"Variación aplicada: {variation_data.get('name', 'Sin nombre')}")
-
+        """Aplica una variación a las tarjetas de categoría"""
+        self.category_grid.apply_variation(variation_data)
+    
     def run(self):
         """Muestra la ventana"""
         self.show()
-
-def main():
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.run()
-    sys.exit(app.exec())
