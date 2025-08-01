@@ -45,10 +45,6 @@ class VariationsPanel(QWidget):
         # Botones de acción
         buttons_layout = QHBoxLayout()
         
-        self.save_btn = QPushButton("Guardar Actual")
-        self.save_btn.clicked.connect(self.save_current_variation)
-        buttons_layout.addWidget(self.save_btn)
-        
         self.load_btn = QPushButton("Cargar")
         self.load_btn.clicked.connect(self.load_variation)
         buttons_layout.addWidget(self.load_btn)
@@ -155,44 +151,6 @@ class VariationsPanel(QWidget):
             return ", ".join(active_categories)
         else:
             return f"{', '.join(active_categories[:3])}... (+{len(active_categories)-3})"
-
-    def save_current_variation(self):
-        """Guarda la configuración actual como una nueva variación"""
-        dialog = SaveVariationDialog(self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            character = dialog.character_name
-            variation_name = dialog.variation_name
-            description = dialog.description
-            
-            if character and variation_name:
-                # Obtener configuración actual del generador
-                current_config = self.prompt_generator.get_current_configuration()
-                
-                # Agregar metadatos
-                variation_data = {
-                    'categories': current_config,
-                    'description': description,
-                    'created_at': datetime.now().isoformat(),
-                    'modified_at': datetime.now().isoformat()
-                }
-                
-                # Guardar
-                success = self.variations_manager.save_variation(
-                    character, variation_name, variation_data
-                )
-                
-                if success:
-                    self.load_variations()  # Recargar la lista
-                    self.variation_saved.emit(character, variation_name)
-                    QMessageBox.information(
-                        self, "Éxito", 
-                        f"Variación '{variation_name}' guardada para {character}"
-                    )
-                else:
-                    QMessageBox.warning(
-                        self, "Error", 
-                        "No se pudo guardar la variación"
-                    )
 
     def load_variation(self):
         """Carga la variación seleccionada"""
