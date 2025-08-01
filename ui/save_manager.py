@@ -8,6 +8,7 @@ from PyQt6.QtGui import QFont
 import os
 import json
 from .new_character_dialog import NewCharacterDialog
+from .variation_changes_widget import VariationChangesWidget
 
 class SaveOptionsDialog(QDialog):
     """Diálogo para seleccionar el tipo de guardado"""
@@ -154,7 +155,7 @@ class VariationDialog(QDialog):
         self.category_grid = category_grid
         self.setWindowTitle("Crear Variación de Personaje")
         self.setModal(True)
-        self.setFixedSize(500, 400)
+        self.setFixedSize(500, 550)  # Cambiar de 400 a 550
         self.selected_character = None
         self.variation_name = None
         self.setup_ui()
@@ -165,12 +166,6 @@ class VariationDialog(QDialog):
         layout.setSpacing(15)
         layout.setContentsMargins(30, 30, 30, 30)
         
-        # Título
-        title_label = QLabel("Crear Variación de Personaje")
-        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("color: #FFFFFF; margin-bottom: 10px;")
-        layout.addWidget(title_label)
         
         # Selector de personaje
         character_layout = QVBoxLayout()
@@ -266,29 +261,12 @@ class VariationDialog(QDialog):
         
         layout.addLayout(variation_layout)
         
-        # Espacio para sección futura
-        future_section = QFrame()
-        future_section.setFixedHeight(100)
-        future_section.setStyleSheet("""
-            QFrame {
-                background-color: #2a2a2a;
-                border: 2px dashed #555;
-                border-radius: 8px;
-            }
-        """)
+        # Sección de cambios detectados
+        self.changes_widget = VariationChangesWidget(self)
+        layout.addWidget(self.changes_widget)
         
-        future_layout = QVBoxLayout(future_section)
-        future_placeholder = QLabel("Sección futura\n(por implementar)")
-        future_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        future_placeholder.setStyleSheet("""
-            color: #888;
-            font-style: italic;
-            font-size: 11px;
-        """)
-        future_layout.addWidget(future_placeholder)
-        
-        layout.addWidget(future_section)
-        layout.addStretch()
+        # Conectar señal para cuando se actualicen los cambios
+        self.changes_widget.changes_updated.connect(self.on_changes_updated)
         
         # Botones
         buttons_layout = QHBoxLayout()
@@ -459,6 +437,18 @@ class VariationDialog(QDialog):
             self.variation_input.setText(f"{character_name}_var1")
             print(f"Error generando nombre de variación: {e}")
     
+    def on_changes_updated(self):
+        """Maneja cuando se actualizan los cambios detectados"""
+        print("Cambios actualizados en VariationDialog")
+        
+        # Opcional: habilitar el botón de crear variación si hay cambios
+        try:
+            changes_data = self.changes_widget.get_changes_data()
+            if changes_data:
+                print(f"Se detectaron cambios en {len(changes_data)} categorías")
+        except Exception as e:
+            print(f"Error obteniendo cambios: {e}")
+
     def create_variation(self):
         """Crea la variación y cierra el diálogo"""
         character = self.selected_character
@@ -494,3 +484,13 @@ class SaveManager:
         """Muestra la ventana de opciones de guardado"""
         dialog = SaveOptionsDialog(self.parent, self.category_grid)
         dialog.exec()
+
+    
+    def on_changes_updated(self):
+        """Maneja cuando se actualizan los cambios detectados"""
+        print("Cambios actualizados en VariationDialog")
+        
+        # Opcional: habilitar el botón de crear variación si hay cambios
+        changes_data = self.changes_widget.get_changes_data()
+        if changes_data:
+            print(f"Se detectaron cambios en {len(changes_data)} categorías")
