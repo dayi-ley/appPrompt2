@@ -1,10 +1,9 @@
 {
   "angulo": [
+    "low angle",
     "medium angle",
     "lateral angle",
-    "high angle",
-    "low angle",
-    "(lateral angle)"
+    "high angle"
   ],
   "calidad_tecnica": [
     "newest",

@@ -288,15 +288,21 @@ class CategoryCard(QFrame):
             count -= 1
         count = max(0, count)
         self.tag_click_counts[tag] = count
-
+    
         # Quita versiones anteriores del tag en el input_field
         current = self.input_field.text()
         pattern = re.compile(rf"\(*\s*{re.escape(tag)}\s*\)*,")
         current = pattern.sub("", current).strip()
-
+    
         # Si la importancia es 0, no agregues el tag
         if count > 0:
-            tag_text = f"{'(' * count}{tag}{')' * count},"
+            # CAMBIO: Primer click sin paréntesis, segundo click en adelante con paréntesis
+            if count == 1:
+                tag_text = f"{tag},"  # Sin paréntesis en el primer click
+            else:
+                parentheses_count = count - 1  # Restar 1 para que el segundo click tenga 1 paréntesis
+                tag_text = f"{'(' * parentheses_count}{tag}{')' * parentheses_count},"
+            
             if current:
                 new_text = f"{current} {tag_text}"
             else:

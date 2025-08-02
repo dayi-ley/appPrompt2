@@ -132,6 +132,45 @@ class CategoryGridFrame(QWidget):
                 background-color: #4f46e5;
             }
         """)
+    def get_category_group_color(self, category_name):
+        """Retorna el color de grupo basado en el prefijo de la categoría"""
+        color_groups = {
+            'Loras estilos artistico': '#4c0027',        # Gris azulado para Loras
+            'Loras detalles mejoras':'#4c0027',
+            'Loras modelos especificos':'#4c0027',
+            'Loras personaje':'#4c0027',
+            'Personaje':'#d09305',
+            
+            'Cabello forma': '#4e635a',      # Marrón para cabello
+            'Cabello color':'#4e635a',
+            'Cabello accesorios':'#4e635a',
+            #vestuario
+            'Vestuario general': '#553c9a',  
+            'Vestuario superior':'#553c9a', 
+            'Vestuario inferior':'#553c9a',
+            'Vestuario accesorios':'#553c9a',
+            'Ropa interior superior':'#553c9a',
+            'Ropa interior inferior':'#553c9a',
+            'Ropa interior accesorios':'#553c9a',
+              # Púrpura para vestuario
+            'ropa_interior_': '#c53030', # Rojo para ropa interior
+            'expresion_facial_': '#38a169', # Verde para expresiones
+            'pose_': '#38a169',
+            'Pose actitud global': '#38a169',
+            'Pose brazos': '#38a169',
+            'Pose piernas': '#38a169',
+            'Orientacion personaje': '#38a169',
+            
+            # Amarillo para poses
+            'rasgo_fisico_': '#dd6b20',  # Naranja para rasgos físicos
+            'objetos_': '#319795',      # Teal para objetos
+        }
+        
+        for prefix, color in color_groups.items():
+            if category_name.startswith(prefix):
+                return color
+        
+        return "#252525"  # Color por defecto
 
     def create_cards(self):
         """Crea las tarjetas de categorías"""
@@ -139,11 +178,15 @@ class CategoryGridFrame(QWidget):
         
         row, col = 0, 0
         for category in categories:
+            # Obtener color grupal
+            group_color = self.get_category_group_color(category["name"])
+            
             card = CategoryCard(
                 category["name"], 
                 category["icon"], 
                 category["tags"], 
-                self.prompt_generator
+                self.prompt_generator,
+                bg_color=group_color  # ¡Agregar el color grupal!
             )
             card.request_rename.connect(self.handle_category_rename)
             card.value_changed.connect(self.update_prompt)
