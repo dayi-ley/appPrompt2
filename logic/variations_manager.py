@@ -6,51 +6,66 @@ from typing import Dict, List, Optional, Any
 class VariationsManager:
     """Gestor de variaciones de prompts para personajes"""
     
-    def __init__(self, variations_file: str = None):
-        if variations_file is None:
-            # Obtener la ruta del archivo de variaciones
-            current_dir = os.path.dirname(os.path.dirname(__file__))
-            self.variations_file = os.path.join(current_dir, "data", "variations.json")
-        else:
-            self.variations_file = variations_file
+    def __init__(self):
+        # Ya no necesitamos un archivo global de variaciones
+        current_dir = os.path.dirname(os.path.dirname(__file__))
+        self.characters_dir = os.path.join(current_dir, "data", "characters")
+    
+    def get_character_variations_file(self, character_name: str) -> str:
+        """Obtiene la ruta del archivo de variaciones para un personaje específico"""
+        character_folder = os.path.join(self.characters_dir, character_name.lower().replace(' ', '_'))
+        return os.path.join(character_folder, f"{character_name.lower().replace(' ', '_')}_variations.json")
+    
+    def ensure_character_variations_file(self, character_name: str):
+        """Asegura que el archivo de variaciones del personaje existe"""
+        variations_file = self.get_character_variations_file(character_name)
         
-        self.ensure_variations_file()
-    
-    def ensure_variations_file(self):
-        """Asegura que el archivo de variaciones existe"""
-        if not os.path.exists(self.variations_file):
-            os.makedirs(os.path.dirname(self.variations_file), exist_ok=True)
-            # Crear estructura inicial
+        if not os.path.exists(variations_file):
+            # Crear estructura inicial para el personaje
             initial_data = {
-                "characters": {},
+                "character_name": character_name,
+                "variations": {},
                 "metadata": {
                     "version": "1.0",
                     "created": datetime.now().isoformat(),
                     "last_modified": datetime.now().isoformat()
                 }
             }
-            self.save_variations_data(initial_data)
+            
+            # Asegurar que la carpeta del personaje existe
+            os.makedirs(os.path.dirname(variations_file), exist_ok=True)
+            
+            with open(variations_file, 'w', encoding='utf-8') as f:
+                json.dump(initial_data, f, indent=2, ensure_ascii=False)
     
-    def load_variations_data(self) -> Dict[str, Any]:
-        """Carga los datos de variaciones desde el archivo"""
+    def load_character_variations_data(self, character_name: str) -> Dict[str, Any]:
+        """Carga los datos de variaciones de un personaje específico"""
+        variations_file = self.get_character_variations_file(character_name)
+        
         try:
-            with open(self.variations_file, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-                if not content:  # Archivo vacío
-                    return {
-                        "characters": {},
-                        "metadata": {
-                            "version": "1.0",
-                            "created": datetime.now().isoformat(),
-                            "last_modified": datetime.now().isoformat()
-                        }
-                    }
-                return json.loads(content)
-        except (FileNotFoundError, json.JSONDecodeError):
-            # En lugar de llamarse a sí mismo, devolver estructura inicial
-            self.ensure_variations_file()
+            if os.path.exists(variations_file):
+                with open(variations_file, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if content:
+                        return json.loads(content)
+            
+            # Si no existe el archivo, crear estructura inicial
+            self.ensure_character_variations_file(character_name)
             return {
-                "characters": {},
+                "character_name": character_name,
+                "variations": {},
+                "metadata": {
+                    "version": "1.0",
+                    "created": datetime.now().isoformat(),
+                    "last_modified": datetime.now().isoformat()
+                }
+            }
+            
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error cargando variaciones para {character_name}: {e}")
+            return {
+                "character_name": character_name,
+                "variations": {},
                 "metadata": {
                     "version": "1.0",
                     "created": datetime.now().isoformat(),
@@ -58,21 +73,30 @@ class VariationsManager:
                 }
             }
     
-    def save_variations_data(self, data: Dict[str, Any]):
-        """Guarda los datos de variaciones al archivo"""
+    def save_character_variations_data(self, character_name: str, data: Dict[str, Any]):
+        """Guarda los datos de variaciones de un personaje específico"""
+        variations_file = self.get_character_variations_file(character_name)
+        
+        # Actualizar metadata
         data["metadata"]["last_modified"] = datetime.now().isoformat()
-        with open(self.variations_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        # Asegurar que la carpeta existe
+        os.makedirs(os.path.dirname(variations_file), exist_ok=True)
+        
+        with open(variations_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
     
     def get_character_variations(self, character_name: str) -> Dict[str, Any]:
-        """Obtiene todas las variaciones de un personaje"""
-        data = self.load_variations_data()
-        return data["characters"].get(character_name, {})
+        """Obtiene todas las variaciones de un personaje en el formato esperado por el panel"""
+        data = self.load_character_variations_data(character_name)
+        return {
+            "variations": data.get("variations", {}),
+            "metadata": data.get("metadata", {})
+        }
     
     def get_character_base_config(self, character_name: str) -> Dict[str, Any]:
-        """Obtiene la configuración base de un personaje"""
-        character_data = self.get_character_variations(character_name)
-        return character_data.get("base_config", {})
+        """Obtiene la configuración base de un personaje (no implementado en esta versión)"""
+        return {}
     
     def save_variation(self, character_name: str, variation_name: str, 
                       categories: Dict[str, str], description: str = "",
@@ -80,14 +104,7 @@ class VariationsManager:
                       inherit_from: str = None) -> bool:
         """Guarda una nueva variación para un personaje"""
         try:
-            data = self.load_variations_data()
-            
-            # Asegurar que el personaje existe
-            if character_name not in data["characters"]:
-                data["characters"][character_name] = {
-                    "base_config": {},
-                    "variations": {}
-                }
+            data = self.load_character_variations_data(character_name)
             
             # Crear la variación
             variation_data = {
@@ -104,9 +121,9 @@ class VariationsManager:
                 variation_data["inherit_from"] = inherit_from
             
             # Guardar la variación
-            data["characters"][character_name]["variations"][variation_name] = variation_data
+            data["variations"][variation_name] = variation_data
             
-            self.save_variations_data(data)
+            self.save_character_variations_data(character_name, data)
             return True
             
         except Exception as e:
@@ -115,32 +132,27 @@ class VariationsManager:
     
     def load_variation(self, character_name: str, variation_name: str) -> Optional[Dict[str, Any]]:
         """Carga una variación específica"""
-        character_data = self.get_character_variations(character_name)
-        variations = character_data.get("variations", {})
-        
-        if variation_name not in variations:
+        try:
+            data = self.load_character_variations_data(character_name)
+            variations = data.get("variations", {})
+            
+            if variation_name in variations:
+                return variations[variation_name]
+            else:
+                print(f"Variación '{variation_name}' no encontrada para {character_name}")
+                return None
+                
+        except Exception as e:
+            print(f"Error cargando variación: {e}")
             return None
-        
-        variation = variations[variation_name].copy()
-        
-        # Si hereda de otra variación, combinar las categorías
-        if "inherit_from" in variation:
-            parent_variation = variations.get(variation["inherit_from"])
-            if parent_variation:
-                # Combinar categorías (la variación actual sobrescribe la padre)
-                combined_categories = parent_variation.get("categories", {}).copy()
-                combined_categories.update(variation.get("categories", {}))
-                variation["categories"] = combined_categories
-        
-        return variation
     
     def copy_variation_to_character(self, source_char: str, source_variation: str,
                                    target_char: str, new_variation_name: str = None) -> bool:
         """Copia una variación de un personaje a otro"""
         try:
-            # Cargar la variación fuente
-            source_variation_data = self.load_variation(source_char, source_variation)
-            if not source_variation_data:
+            # Cargar variación origen
+            source_data = self.load_variation(source_char, source_variation)
+            if not source_data:
                 return False
             
             # Nombre de la nueva variación
@@ -151,93 +163,114 @@ class VariationsManager:
             return self.save_variation(
                 target_char,
                 new_variation_name,
-                source_variation_data.get("categories", {}),
-                f"Copiado de {source_char}: {source_variation_data.get('description', '')}",
-                source_variation_data.get("tags", []),
-                source_variation_data.get("notes", "")
+                source_data.get("categories", {}),
+                source_data.get("description", ""),
+                source_data.get("tags", []),
+                source_data.get("notes", ""),
+                f"Copiado de {source_char}:{source_variation}"
             )
             
         except Exception as e:
-            print(f"Error al copiar variación: {e}")
+            print(f"Error copiando variación: {e}")
             return False
     
     def delete_variation(self, character_name: str, variation_name: str) -> bool:
-        """Elimina una variación"""
+        """Elimina una variación específica"""
         try:
-            data = self.load_variations_data()
+            data = self.load_character_variations_data(character_name)
+            variations = data.get("variations", {})
             
-            if (character_name in data["characters"] and 
-                "variations" in data["characters"][character_name] and
-                variation_name in data["characters"][character_name]["variations"]):
-                
-                del data["characters"][character_name]["variations"][variation_name]
-                self.save_variations_data(data)
+            if variation_name in variations:
+                del variations[variation_name]
+                self.save_character_variations_data(character_name, data)
                 return True
-            
-            return False
-            
+            else:
+                print(f"Variación '{variation_name}' no encontrada")
+                return False
+                
         except Exception as e:
-            print(f"Error al eliminar variación: {e}")
+            print(f"Error eliminando variación: {e}")
             return False
     
     def get_variation_info(self, character_name: str, variation_name: str) -> Optional[Dict[str, Any]]:
-        """Obtiene información completa de una variación"""
-        variation = self.load_variation(character_name, variation_name)
-        if variation:
-            variation["character"] = character_name
-        return variation
+        """Obtiene información de una variación específica"""
+        return self.load_variation(character_name, variation_name)
     
     def search_variations_by_tag(self, tag: str) -> List[Dict[str, Any]]:
-        """Busca variaciones por etiqueta"""
+        """Busca variaciones por tag en todos los personajes"""
         results = []
-        data = self.load_variations_data()
         
-        for char_name, char_data in data["characters"].items():
-            variations = char_data.get("variations", {})
-            for var_name, var_data in variations.items():
-                if tag.lower() in [t.lower() for t in var_data.get("tags", [])]:
-                    result = var_data.copy()
-                    result["character"] = char_name
-                    result["variation_name"] = var_name
-                    results.append(result)
+        try:
+            # Buscar en todas las carpetas de personajes
+            if os.path.exists(self.characters_dir):
+                for character_folder in os.listdir(self.characters_dir):
+                    character_path = os.path.join(self.characters_dir, character_folder)
+                    if os.path.isdir(character_path):
+                        character_name = character_folder
+                        variations = self.get_character_variations(character_name)
+                        
+                        for var_name, var_data in variations.items():
+                            if tag in var_data.get("tags", []):
+                                results.append({
+                                    "character": character_name,
+                                    "variation_name": var_name,
+                                    "data": var_data
+                                })
+        except Exception as e:
+            print(f"Error buscando por tag: {e}")
         
         return results
     
     def get_all_characters_with_variations(self) -> List[str]:
         """Obtiene lista de todos los personajes que tienen variaciones"""
-        data = self.load_variations_data()
-        return list(data["characters"].keys())
+        characters = []
+        
+        try:
+            if os.path.exists(self.characters_dir):
+                for character_folder in os.listdir(self.characters_dir):
+                    character_path = os.path.join(self.characters_dir, character_folder)
+                    if os.path.isdir(character_path):
+                        character_name = character_folder
+                        variations_file = self.get_character_variations_file(character_name)
+                        
+                        # Verificar si tiene variaciones
+                        if os.path.exists(variations_file):
+                            data = self.load_character_variations_data(character_name)
+                            if data.get("variations", {}):
+                                characters.append(character_name)
+        except Exception as e:
+            print(f"Error obteniendo personajes: {e}")
+        
+        return characters
     
     def export_variation(self, character_name: str, variation_name: str, 
                         export_path: str) -> bool:
-        """Exporta una variación a un archivo JSON"""
+        """Exporta una variación a un archivo"""
         try:
-            variation_data = self.get_variation_info(character_name, variation_name)
+            variation_data = self.load_variation(character_name, variation_name)
             if not variation_data:
                 return False
             
+            export_data = {
+                "character": character_name,
+                "variation_name": variation_name,
+                "data": variation_data,
+                "exported_date": datetime.now().isoformat()
+            }
+            
             with open(export_path, 'w', encoding='utf-8') as f:
-                json.dump(variation_data, f, ensure_ascii=False, indent=2)
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
             
             return True
             
         except Exception as e:
-            print(f"Error al exportar variación: {e}")
+            print(f"Error exportando variación: {e}")
             return False
     
     def update_base_config(self, character_name: str, categories: Dict[str, str]):
-        """Actualiza la configuración base de un personaje"""
+        """Actualiza la configuración base de un personaje (no implementado en esta versión)"""
         try:
-            data = self.load_variations_data()
-            
-            if character_name not in data["characters"]:
-                data["characters"][character_name] = {
-                    "base_config": {},
-                    "variations": {}
-                }
-            
-            data["characters"][character_name]["base_config"] = categories
-            self.save_variations_data(data)
-            
+            # Esta funcionalidad se puede implementar más adelante si es necesaria
+            print(f"Actualización de configuración base para {character_name} - No implementado")
         except Exception as e:
             print(f"Error al actualizar configuración base: {e}")

@@ -1,0 +1,60 @@
+{
+  "character_name": "frieren",
+  "variations": {
+    "frieren_var1": {
+      "name": "frieren_var1",
+      "description": "Variación frieren_var1 para frieren",
+      "tags": [],
+      "categories": {
+        "Angulo": "((low angle)), (lateral angle),",
+        "Calidad tecnica": "masterpiece, best quality, amazing quality, absurdres, newest,",
+        "Estilo artistico": "Pachu illustration Style, (realistic:0.3),",
+        "Composicion": "posing, scenery, face focus shot, face highlight view, focused gaze, face centered shot,",
+        "Atmosfera vibe": "very aesthetic, sexy,",
+        "Loras estilos artistico": "<lora:odanon-lora-v1-128dim-10ep-novae:0.2>, <lora:LFashionIXL:0.2>, <lora:saegarantr:0.45>, <lora:WagashiDagashiyaきしわがし_Style_LoRA__SDXL__Pony__v2:0.5>,",
+        "Loras detalles mejoras": "<lora:add_detail:1>, <lora:DetailedEyes_XL:1>,",
+        "Loras modelos especificos": "<lora:96YOTTEA-WAI:1>, <lora:748cmSDXL:0.2>, <lora:USNR STYLE_XL_loha:0.6>,",
+        "Loras personaje": "<lora:kobayashiPONYct:0.5>,",
+        "Fondo": "simple background, blurred bedroom, bedroom blur, soft room background, indoor soft focus,",
+        "Personaje": "((kobayashi)), 1girl,",
+        "Cabello forma": "short hair,",
+        "Cabello color": "red hair, orange hair,",
+        "Cabello accesorios": "",
+        "Rostro accesorios": "glasses,",
+        "Ojos": "blue eyes,",
+        "Expresion facial ojos": "half-lidded seductive gaze, sharp sidelong glance, challenging direct stare, playfully narrowed eyes,",
+        "Expresion facial mejillas": "cheeks slightly flushed,",
+        "Expresion facial boca": "",
+        "Postura cabeza": "",
+        "Direccion mirada personaje": "",
+        "Vestuario general": "swimsuit under clothes, tactical clothes, school swimsuit, blue leotard, playboy bunny, detached collar, wrist cuffs, cleavage,",
+        "Vestuario superior": "white shirt, blue sailor collar, blue neckerchief, short sleeve shirt, sailor shirt,",
+        "Vestuario inferior": "((silver skirt)),",
+        "Vestuario accesorios": "gloves, fingerless gloves, choker,",
+        "Ropa interior superior": "swimsuit under clothes, Eyepatch bikini,",
+        "Ropa interior inferior": "",
+        "Ropa interior accesorios": "",
+        "Tipo de cuerpo": "((loli)), ((small body)), (petite female),",
+        "Rasgo fisico cuerpo": "",
+        "Rasgo fisico piernas": "",
+        "Pose actitud global": "kneeling, sitting, squatting, standing, feet up, feet down, ass, sitting, dutch angle,",
+        "Pose brazos": "hands on hips,",
+        "Pose piernas": "",
+        "Orientacion personaje": "((Diagonal back view)), ((Full back view)),",
+        "Actitud emocion": "",
+        "Nsfw": "",
+        "Objetos interaccion": "",
+        "Objetos escenario": "",
+        "Mirada espectador": "from below, worm's eye view,"
+      },
+      "created_date": "2025-08-01T20:48:08.017498",
+      "rating": 0,
+      "notes": "Creada desde la aplicación"
+    }
+  },
+  "metadata": {
+    "version": "1.0",
+    "created": "2025-08-01T20:48:03.159681",
+    "last_modified": "2025-08-01T20:48:08.017498"
+  }
+}

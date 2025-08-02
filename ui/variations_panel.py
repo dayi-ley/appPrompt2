@@ -42,23 +42,6 @@ class VariationsPanel(QWidget):
         self.variations_tree.itemDoubleClicked.connect(self.load_variation_on_double_click)
         layout.addWidget(self.variations_tree)
         
-        # Botones de acción
-        buttons_layout = QHBoxLayout()
-        
-        self.load_btn = QPushButton("Cargar")
-        self.load_btn.clicked.connect(self.load_variation)
-        buttons_layout.addWidget(self.load_btn)
-        
-        self.delete_btn = QPushButton("Eliminar")
-        self.delete_btn.clicked.connect(self.delete_variation)
-        buttons_layout.addWidget(self.delete_btn)
-        
-        self.copy_btn = QPushButton("Copiar")
-        self.copy_btn.clicked.connect(self.copy_variation)
-        buttons_layout.addWidget(self.copy_btn)
-        
-        layout.addLayout(buttons_layout)
-
     def setup_styles(self):
         """Configura los estilos del panel"""
         self.setStyleSheet("""

@@ -486,9 +486,77 @@ class VariationDialog(QDialog):
             QMessageBox.warning(self, "Error", "El nombre de variación solo puede contener letras, números, guiones y guiones bajos.")
             return
         
-        self.selected_character = character
-        self.variation_name = variation
-        self.accept()
+        try:
+            # Capturar los valores actuales de las categorías
+            current_values = {}
+            if self.category_grid:
+                current_values = self.category_grid.get_current_values()
+                print(f"Valores capturados: {len(current_values)} categorías")
+            
+            # Acceder al variations_manager desde el sidebar
+            variations_manager = None
+            if self.sidebar and hasattr(self.sidebar, 'variations_manager'):
+                variations_manager = self.sidebar.variations_manager
+            
+            if not variations_manager:
+                # Importar y crear una instancia si no está disponible
+                from logic.variations_manager import VariationsManager
+                variations_manager = VariationsManager()
+            
+            # Verificar si la variación ya existe
+            existing_variations = variations_manager.get_character_variations(character)
+            if variation in existing_variations.get("variations", {}):
+                reply = QMessageBox.question(
+                    self, "Variación existente",
+                    f"Ya existe una variación llamada '{variation}' para {character}.\n¿Deseas sobrescribirla?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.No:
+                    return
+            
+            # Guardar la variación
+            success = variations_manager.save_variation(
+                character_name=character,
+                variation_name=variation,
+                categories=current_values,
+                description=f"Variación {variation} para {character}",
+                tags=[],
+                notes="Creada desde la aplicación"
+            )
+            
+            if success:
+                # Actualizar la pestaña de variaciones si está disponible
+                if self.sidebar and hasattr(self.sidebar, 'variations_panel'):
+                    self.sidebar.variations_panel.load_variations()
+                    print(f"Pestaña de variaciones actualizada")
+                
+                # Emitir señal de variación guardada si está disponible
+                if self.sidebar and hasattr(self.sidebar, 'variations_panel'):
+                    self.sidebar.variations_panel.variation_saved.emit(character, variation)
+                
+                QMessageBox.information(
+                    self, "Éxito", 
+                    f"Variación '{variation}' creada exitosamente para {character}\n"
+                    f"Categorías guardadas: {len(current_values)}"
+                )
+                
+                self.selected_character = character
+                self.variation_name = variation
+                self.accept()
+                
+            else:
+                QMessageBox.warning(
+                    self, "Error", 
+                    "No se pudo guardar la variación. Revisa los logs para más detalles."
+                )
+                
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Error", 
+                f"Error al crear la variación: {str(e)}"
+            )
+            print(f"Error detallado: {e}")
     
     def get_variation_data(self):
         """Retorna los datos de la variación creada"""

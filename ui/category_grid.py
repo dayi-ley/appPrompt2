@@ -414,6 +414,40 @@ class CategoryGridFrame(QWidget):
                 f"Se han cargado {loaded_count} categorías del personaje."
             )
 
+    def apply_variation(self, variation_data):
+        """Aplica los valores de una variación a las tarjetas de categoría"""
+        if not variation_data:
+            return
+        
+        # Los datos de variación tienen la estructura: {'categories': {...}, 'name': '...', etc.}
+        categories_data = variation_data.get('categories', {})
+        
+        if not categories_data:
+            return
+        
+        loaded_count = 0
+        for card in self.cards:
+            if hasattr(card, 'category_name') and hasattr(card, 'input_field'):
+                # Buscar el valor de la categoría en los datos de la variación
+                category_name = card.category_name
+                
+                if category_name in categories_data:
+                    # Aplicar el valor a la tarjeta
+                    card.input_field.setText(categories_data[category_name])
+                    loaded_count += 1
+        
+        # Actualizar el prompt después de cargar los datos
+        self.update_prompt()
+        
+        # Mostrar mensaje de confirmación
+        if loaded_count > 0:
+            variation_name = variation_data.get('name', 'Variación')
+            QMessageBox.information(
+                self, 
+                "Variación cargada", 
+                f"Se han cargado {loaded_count} categorías de la variación '{variation_name}'."
+            )
+
 
 class ImportDataDialog(QDialog):
     def __init__(self, parent=None):
