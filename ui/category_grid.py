@@ -383,7 +383,7 @@ class CategoryGridFrame(QWidget):
                 "Datos importados", 
                 f"Se han cargado {loaded_count} categorías."
             )
-    
+
     def apply_character_defaults(self, character_data):
         """Aplica los valores por defecto de un personaje a las tarjetas"""
         # Eliminar: print(f"[DEBUG] apply_character_defaults llamado con: {character_data}")
@@ -535,3 +535,17 @@ class ImportDataDialog(QDialog):
     def get_imported_data(self):
         """Retorna los datos importados"""
         return self.imported_data
+
+
+def capture_initial_snapshot(self):
+    """Captura el snapshot de valores iniciales para detectar cambios posteriores"""
+    # Obtener referencia al sidebar desde main_window
+    main_window = self.parent()
+    while main_window and not hasattr(main_window, 'sidebar'):
+        main_window = main_window.parent()
+    
+    if main_window and hasattr(main_window, 'sidebar'):
+        current_values = self.get_current_values()
+        main_window.sidebar.original_values_snapshot = current_values.copy()
+        main_window.sidebar.changes_tracker = {}  # Limpiar tracker
+        print(f"Snapshot inicial capturado: {len(current_values)} categorías")

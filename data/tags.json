@@ -3,14 +3,15 @@
     "medium angle",
     "lateral angle",
     "high angle",
-    "low angle"
+    "low angle",
+    "(lateral angle)"
   ],
   "calidad_tecnica": [
-    "absurdres",
     "newest",
     "best quality",
     "masterpiece",
-    "amazing quality"
+    "amazing quality",
+    "(absurdres)"
   ],
   "estilo_artistico": [
     "Pachu illustration Style",

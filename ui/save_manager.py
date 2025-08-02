@@ -133,7 +133,19 @@ class SaveOptionsDialog(QDialog):
     
     def select_variation(self):
         """Muestra el diálogo para crear variación de personaje"""
-        dialog = VariationDialog(self)
+        # Obtener referencia al sidebar desde el parent
+        sidebar = None
+        if hasattr(self.parent, 'sidebar'):
+            sidebar = self.parent.sidebar
+            
+            # IMPORTANTE: Establecer snapshot de valores actuales antes de abrir la ventana
+            if hasattr(self.parent, 'category_grid'):
+                current_values = self.parent.category_grid.get_current_values()
+                sidebar.original_values_snapshot = current_values.copy()
+                sidebar.changes_tracker = {}  # Limpiar tracker de cambios
+        
+        # Línea 147 - Correcto
+        dialog = VariationDialog(self, sidebar, self.category_grid)#Pasar sidebar y category_grid
         
         if dialog.exec() == QDialog.DialogCode.Accepted:
             variation_data = dialog.get_variation_data()
@@ -150,16 +162,28 @@ class SaveOptionsDialog(QDialog):
 class VariationDialog(QDialog):
     """Diálogo para crear una nueva variación de personaje"""
     
-    def __init__(self, parent=None, category_grid=None):
+    def __init__(self, parent=None, sidebar=None, category_grid=None):
         super().__init__(parent)
-        self.category_grid = category_grid
+        self.sidebar = sidebar
+        self.category_grid = category_grid  # Añadir referencia
         self.setWindowTitle("Crear Variación de Personaje")
         self.setModal(True)
-        self.setFixedSize(500, 550)  # Cambiar de 400 a 550
+        self.setFixedSize(500, 550)
         self.selected_character = None
         self.variation_name = None
         self.setup_ui()
         self.load_available_characters()
+        
+        # Establecer snapshot de valores actuales al abrir la ventana
+        self.capture_current_state()
+    
+    def capture_current_state(self):
+        """Captura el estado actual de las categorías como punto de referencia"""
+        if self.sidebar and hasattr(self.parent, 'category_grid'):
+            current_values = self.parent.category_grid.get_current_values()
+            self.sidebar.original_values_snapshot = current_values.copy()
+            self.sidebar.changes_tracker = {}  # Limpiar tracker de cambios
+            print(f"Snapshot capturado: {len(current_values)} categorías")
     
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -262,7 +286,7 @@ class VariationDialog(QDialog):
         layout.addLayout(variation_layout)
         
         # Sección de cambios detectados
-        self.changes_widget = VariationChangesWidget(self)
+        self.changes_widget = VariationChangesWidget(self, self.sidebar, self.category_grid)  # Usar self.sidebar y self.category_grid
         layout.addWidget(self.changes_widget)
         
         # Conectar señal para cuando se actualicen los cambios
