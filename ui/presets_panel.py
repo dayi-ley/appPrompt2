@@ -177,17 +177,16 @@ class PresetsPanel(QWidget):
             QMessageBox.warning(self, "Sin contenido", "No hay categorías con valores para guardar.")
             return
         
-        # Crear diálogo personalizado
-        # Crear diálogo personalizado más ancho
+        # Crear diálogo personalizado más compacto
         dialog = QDialog(self)
         dialog.setWindowTitle("Guardar Preset")
         dialog.setModal(True)
-        dialog.resize(900, 700)  # Más ancho para dos columnas
+        dialog.resize(700, 650)  # Reducir ancho de 900 a 700
         
         # Layout principal horizontal
         main_layout = QHBoxLayout(dialog)
         
-        # ===== COLUMNA IZQUIERDA: CATEGORÍAS (70% del ancho) =====
+        # ===== COLUMNA IZQUIERDA: CATEGORÍAS (75% del ancho) =====
         left_section = QVBoxLayout()
         
         # Título de categorías
@@ -290,37 +289,42 @@ class PresetsPanel(QWidget):
         # Carpeta
         right_section.addWidget(QLabel("Carpeta:"))
         type_combo = QComboBox()
+        type_combo.setMaximumWidth(200)  # Limitar ancho del combo
         # Obtener todas las carpetas disponibles
         all_folders = self.presets_manager.get_all_preset_folders()
         for folder_id, folder_info in all_folders.items():
             type_combo.addItem(folder_info['display_name'], folder_id)
         right_section.addWidget(type_combo)
         
-        
         # Nombre del preset
         right_section.addWidget(QLabel("Nombre del Preset:"))
         name_input = QLineEdit()
+        name_input.setMaximumWidth(200)  # Limitar ancho del input
         right_section.addWidget(name_input)
+        
         
         # Separador
         separator = QLabel()
-        separator.setStyleSheet("border-bottom: 1px solid #ccc; margin: 10px 0;")
+        separator.setStyleSheet("border-bottom: 1px solid #ccc; margin: 2px 0;")  # Reducir margen
         right_section.addWidget(separator)
         
         # Sección de imágenes de referencia (hasta 4)
         right_section.addWidget(QLabel("Imágenes de Referencia:"))
         
-        # Container para las 4 imágenes en grid 2x2
+        # Container para las 4 imágenes en grid 2x2 más compacto
         images_container = QWidget()
+        images_container.setMaximumWidth(210)  # Limitar ancho del contenedor de imágenes
         images_grid = QGridLayout(images_container)
-        images_grid.setSpacing(5)
+        images_grid.setHorizontalSpacing(0)
+        images_grid.setVerticalSpacing(0)
+        images_grid.setContentsMargins(0, 0, 0, 0)  # Sin márgenes
         
         # Crear 4 espacios para imágenes
         self.image_previews = []
         for i in range(4):
             image_preview = QLabel(f"Imagen {i+1}\nNo seleccionada")
-            image_preview.setFixedSize(60, 60)
-            image_preview.setStyleSheet("border: 2px solid gray; background-color: #f0f0f0; border-radius: 4px; font-size: 8px;")
+            image_preview.setFixedSize(100, 140)
+            image_preview.setStyleSheet("border: 1px solid #ccc; background-color: #383b40; font-size: 10px;")  # Border más sutil
             image_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
             # Posicionar en grid 2x2
@@ -334,13 +338,16 @@ class PresetsPanel(QWidget):
         # Botones para manejo de imágenes
         images_buttons_layout = QHBoxLayout()
         
-        select_images_btn = QPushButton("📷 Agregar Imagen")
+        select_images_btn = QPushButton("Agregar Imágenes ")
         select_images_btn.setMaximumHeight(25)
         images_buttons_layout.addWidget(select_images_btn)
         
-        clear_images_btn = QPushButton("🗑️ Limpiar Todo")
+        clear_images_btn = QPushButton("🗑️")
         clear_images_btn.setMaximumHeight(25)
         images_buttons_layout.addWidget(clear_images_btn)
+        
+        # AGREGAR ESTA LÍNEA QUE FALTA:
+        right_section.addLayout(images_buttons_layout)
         
         # Inicializar lista de imágenes seleccionadas
         if not hasattr(self, 'selected_images'):
@@ -348,43 +355,54 @@ class PresetsPanel(QWidget):
         
         # Funciones para manejo de imágenes
         def select_image():
-            """Selecciona una imagen y la agrega a la lista"""
-            if len(self.selected_images) >= 4:
+            """Selecciona múltiples imágenes y las agrega a la lista"""
+            remaining_slots = 4 - len(self.selected_images)
+            if remaining_slots <= 0:
                 QMessageBox.information(dialog, "Límite alcanzado", "Ya has seleccionado el máximo de 4 imágenes.")
                 return
             
-            file_path, _ = QFileDialog.getOpenFileName(
+            file_paths, _ = QFileDialog.getOpenFileNames(  # Cambiar a getOpenFileNames para múltiple selección
                 dialog,
-                "Seleccionar imagen de referencia",
+                f"Seleccionar imágenes de referencia (máximo {remaining_slots})",
                 "",
                 "Archivos de imagen (*.png *.jpg *.jpeg *.bmp *.gif)"
             )
             
-            if file_path:
-                try:
-                    # Cargar y redimensionar la imagen
-                    pil_image = Image.open(file_path)
-                    pil_image.thumbnail((60, 60), Image.Resampling.LANCZOS)
-                    
-                    # Convertir a QPixmap
-                    buffer = QBuffer()
-                    buffer.open(QBuffer.OpenModeFlag.WriteOnly)
-                    pil_image.save(buffer, format='PNG')
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(buffer.data())
-                    
-                    # Agregar a la lista
-                    self.selected_images.append(file_path)
-                    
-                    # Actualizar la vista previa
-                    index = len(self.selected_images) - 1
-                    if index < len(self.image_previews):
-                        self.image_previews[index].setPixmap(pixmap)
-                        self.image_previews[index].setText("")
-                        self.image_previews[index].setStyleSheet("border: 2px solid #4CAF50; background-color: white; border-radius: 4px;")
-                    
-                except Exception as e:
-                    QMessageBox.warning(dialog, "Error", f"No se pudo cargar la imagen: {str(e)}")
+            if file_paths:
+                # Limitar a los espacios disponibles
+                files_to_process = file_paths[:remaining_slots]
+                
+                for file_path in files_to_process:
+                    try:
+                        # Cargar y redimensionar la imagen
+                        pil_image = Image.open(file_path)
+                        pil_image.thumbnail((160,160), Image.Resampling.LANCZOS)  # Cambiar a 100x100
+                        
+                        # Convertir a QPixmap
+                        buffer = QBuffer()
+                        buffer.open(QBuffer.OpenModeFlag.WriteOnly)
+                        pil_image.save(buffer, format='PNG')
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(buffer.data())
+                        
+                        # Agregar a la lista
+                        self.selected_images.append(file_path)
+                        
+                        # Actualizar la vista previa
+                        index = len(self.selected_images) - 1
+                        if index < len(self.image_previews):
+                            self.image_previews[index].setPixmap(pixmap)
+                            self.image_previews[index].setText("")
+                            self.image_previews[index].setStyleSheet("border: 2px solid white; background-color: #879999; border-radius: 4px;")
+                        
+                    except Exception as e:
+                        QMessageBox.warning(dialog, "Error", f"No se pudo cargar la imagen {os.path.basename(file_path)}: {str(e)}")
+                        continue
+                
+                # Mostrar mensaje informativo
+                loaded_count = len(files_to_process)
+                if loaded_count > 0:
+                    QMessageBox.information(dialog, "Imágenes cargadas", f"Se cargaron {loaded_count} imagen(es) correctamente.")
         
         def clear_all_images():
             """Limpia todas las imágenes seleccionadas"""
@@ -392,7 +410,7 @@ class PresetsPanel(QWidget):
             for i, preview in enumerate(self.image_previews):
                 preview.clear()
                 preview.setText(f"Imagen {i+1}\nNo seleccionada")
-                preview.setStyleSheet("border: 2px solid gray; background-color: #f0f0f0; border-radius: 4px; font-size: 8px;")
+                preview.setStyleSheet("border: 2px solid gray; background-color: #f0f0f0; border-radius: 4px; font-size: 10px;")  # Aumentar font-size
         
         # Conectar botones
         select_images_btn.clicked.connect(select_image)
