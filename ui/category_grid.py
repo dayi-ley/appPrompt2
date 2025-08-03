@@ -24,9 +24,10 @@ class CategoryGridFrame(QWidget):
     category_value_changed = pyqtSignal(str, str, str)  # (category_name, old_value, new_value)
     character_saved = pyqtSignal(str)  # Nueva señal: (character_name)
     
-    def __init__(self, prompt_generator):
+    def __init__(self, prompt_generator, main_window=None):
         super().__init__()
         self.prompt_generator = prompt_generator
+        self.main_window = main_window  # ← AGREGAR REFERENCIA AL MAIN_WINDOW
         self.cards = []
         self.previous_values = {}
         self.previous_values_snapshot = {}
@@ -327,6 +328,11 @@ class CategoryGridFrame(QWidget):
                 if value:
                     variation_data[card.category_name] = value
         
+        # ← CAPTURAR EL NEGATIVE PROMPT ACTUAL
+        negative_prompt = ""
+        if self.main_window and hasattr(self.main_window, 'prompt_section'):
+            negative_prompt = self.main_window.prompt_section.get_negative_prompt()
+        
         if not variation_data:
             QMessageBox.information(self, "Información", "No hay datos para guardar")
             return
@@ -335,12 +341,11 @@ class CategoryGridFrame(QWidget):
         dialog = SaveTypeDialog(self)
         if dialog.exec() == dialog.DialogCode.Accepted:
             if dialog.save_type == "new_character":
-                self.save_as_new_character(variation_data)
+                self.save_as_new_character(variation_data, negative_prompt)  # ← PASAR NEGATIVE PROMPT
             elif dialog.save_type == "variation":
-                # Mantener la funcionalidad original para variaciones
                 current_values = self.get_current_values()
                 changes = self.calculate_changes(self.previous_values_snapshot, current_values)
-                self.save_variation_requested.emit(variation_data, changes)
+                self.save_variation_requested.emit(variation_data, changes, negative_prompt)  # ← PASAR NEGATIVE PROMPT
     
     def save_as_new_character(self, variation_data):
         """Guarda los valores actuales como un nuevo personaje"""

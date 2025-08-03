@@ -1,9 +1,9 @@
 {
   "angulo": [
+    "high angle",
     "low angle",
     "medium angle",
-    "lateral angle",
-    "high angle"
+    "lateral angle"
   ],
   "calidad_tecnica": [
     "newest",
@@ -22,7 +22,8 @@
     "face focus shot",
     "face highlight view",
     "focused gaze",
-    "face centered shot"
+    "face centered shot",
+    "eye close-up"
   ],
   "atmosfera_vibe": [
     "very aesthetic",
@@ -32,7 +33,8 @@
     "<lora:odanon-lora-v1-128dim-10ep-novae:0.2>",
     "<lora:LFashionIXL:0.2>",
     "<lora:saegarantr:0.45>",
-    "<lora:WagashiDagashiyaきしわがし_Style_LoRA__SDXL__Pony__v2:0.5>"
+    "<lora:WagashiDagashiyaきしわがし_Style_LoRA__SDXL__Pony__v2:0.5>",
+    "<lora:flat_sdxl:0.5>"
   ],
   "loras_detalles_mejoras": [
     "<lora:add_detail:1>",
@@ -41,7 +43,8 @@
   "loras_modelos_especificos": [
     "<lora:96YOTTEA-WAI:1>",
     "<lora:748cmSDXL:0.2>",
-    "<lora:USNR STYLE_XL_loha:0.6>"
+    "<lora:USNR STYLE_XL_loha:0.6>",
+    "<lora:USNR STYLE_XL_loha:0.5>"
   ],
   "loras_personaje": [
     "<lora:neon-nikke-richy-v1_pdxl:1>",
@@ -61,6 +64,7 @@
     "sousou no frieren"
   ],
   "cabello_forma": [
+    "wet hair",
     "short hair",
     "ponytails",
     "curly hair",
@@ -68,18 +72,25 @@
     "long hair",
     "twintails",
     "long hair",
-    "bangs"
+    "bangs",
+    "messy hair"
   ],
   "cabello_color": [
+    "white hair",
     "dark pink hair",
     "black hair",
     "blonde hair",
     "brown hair",
     "red hair"
   ],
-  "cabello_accesorios": [],
+  "cabello_accesorios": [
+    "bunny bow headband",
+    "rabbit ear bow"
+  ],
   "rostro_accesorios": [
-    "glasses"
+    "glasses",
+    "earrings",
+    "jewelry"
   ],
   "ojos": [
     "blue eyes",
@@ -129,14 +140,16 @@
     "playboy bunny",
     "detached collar",
     "wrist cuffs",
-    "cleavage"
+    "cleavage",
+    "hoodies"
   ],
   "vestuario_superior": [
     "white shirt",
     "blue sailor collar",
     "blue neckerchief",
     "short sleeve shirt",
-    "sailor shirt"
+    "sailor shirt",
+    "light blue hoodies"
   ],
   "vestuario_inferior": [
     "silver skirt"
@@ -148,17 +161,23 @@
   ],
   "ropa_interior_superior": [
     "swimsuit under clothes",
-    "Eyepatch bikini"
+    "Eyepatch bikini",
+    "white micro swimwear",
+    "string bikini"
   ],
   "ropa_interior_inferior": [
     "swimsuit under clothes",
-    "Eyepatch bikini"
+    "Eyepatch bikini",
+    "g-string, thong,",
+    "string thong",
+    "underwear"
   ],
   "ropa_interior_accesorios": [
     "swimsuit under clothes",
     "Eyepatch bikini"
   ],
   "tipo_de_cuerpo": [
+    "wide hips",
     "loli",
     "small body",
     "petite female"
@@ -176,6 +195,7 @@
     "slender legs"
   ],
   "pose_actitud_global": [
+    "wide hips",
     "standing",
     "sitting",
     "kneeling",
@@ -185,9 +205,11 @@
     "arms crossed",
     "hands on hips",
     "arms raised",
-    "arms relaxed at sides"
+    "arms relaxed at sides",
+    "bare hands"
   ],
   "pose_piernas": [
+    "open legs",
     "legs crossed",
     "legs apart",
     "one leg raised",
@@ -211,7 +233,10 @@
     "nudity",
     "suggestive pose",
     "implied nudity",
-    "erotic pose"
+    "erotic pose",
+    "pubic hair",
+    "nude",
+    "completely nude"
   ],
   "objetos_interaccion": [
     "holding a book",

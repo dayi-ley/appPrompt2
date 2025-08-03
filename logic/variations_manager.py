@@ -101,6 +101,7 @@ class VariationsManager:
     def save_variation(self, character_name: str, variation_name: str, 
                       categories: Dict[str, str], description: str = "",
                       tags: List[str] = None, notes: str = "",
+                      negative_prompt: str = "",  # ← AGREGAR PARÁMETRO
                       inherit_from: str = None) -> bool:
         """Guarda una nueva variación para un personaje"""
         try:
@@ -112,6 +113,7 @@ class VariationsManager:
                 "description": description,
                 "tags": tags or [],
                 "categories": categories,
+                "negative_prompt": negative_prompt,  # ← GUARDAR NEGATIVE PROMPT
                 "created_date": datetime.now().isoformat(),
                 "rating": 0,
                 "notes": notes

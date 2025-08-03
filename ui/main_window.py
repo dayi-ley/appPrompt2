@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
         container_layout.setSpacing(8)
         
         # Sección de categorías
-        self.category_grid = CategoryGridFrame(self.prompt_generator)
+        self.category_grid = CategoryGridFrame(self.prompt_generator, self)  # ← PASAR SELF
         container_layout.addWidget(self.category_grid, 2)  # 2 = más espacio para categorías
         
         # Sección de prompt
