@@ -10,14 +10,26 @@ from logic.prompt_generator import PromptGenerator
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AI Prompt Studio")
-        
-        # Configurar tema oscuro
-        self.set_dark_theme()
         
         # Inicializar el generador de prompts
         self.prompt_generator = PromptGenerator()
         
+        # Configurar la ventana
+        self.setWindowTitle("AI Prompt Studio")
+        
+        # Crear la interfaz de usuario
+        self.setup_ui()
+        
+        # Conectar señales
+        self.connect_signals()
+        
+        # Configurar tema y tamaño
+        self.set_dark_theme()
+        self.setup_responsive_size()
+        self.center_window()
+    
+    def setup_ui(self):
+        """Configura la interfaz de usuario"""
         # Widget central
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -27,8 +39,8 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(16, 16, 16, 16)
         main_layout.setSpacing(8)
         
-        # Sidebar izquierda
-        self.sidebar = SidebarFrame(self.prompt_generator)
+        # Crear componentes principales
+        self.sidebar = SidebarFrame(self.prompt_generator, self)  # ← Pasar self (MainWindow)
         main_layout.addWidget(self.sidebar)
         
         # Contenedor principal para categorías y prompt
@@ -41,18 +53,12 @@ class MainWindow(QMainWindow):
         container_layout.setSpacing(8)
         
         # Sección de categorías
-        self.category_grid = CategoryGridFrame(self.prompt_generator, self)  # ← PASAR SELF
+        self.category_grid = CategoryGridFrame(self.prompt_generator, self)
         container_layout.addWidget(self.category_grid, 2)  # 2 = más espacio para categorías
         
         # Sección de prompt
         self.prompt_section = PromptSectionFrame(self.prompt_generator)
         container_layout.addWidget(self.prompt_section, 1)  # 1 = menos espacio para prompt
-        
-        # Conectar las señales
-        self.connect_signals()
-        
-        # Configurar tamaño responsivo después de crear todos los widgets
-        self.setup_responsive_size()
 
     def setup_responsive_size(self):
         """Configura el tamaño de la ventana de manera responsiva"""
@@ -74,24 +80,13 @@ class MainWindow(QMainWindow):
         
         # Establecer geometría (solo mínimo)
         self.setMinimumSize(min_width, min_height)
-        # Removemos setMaximumSize para permitir maximizar
         self.resize(window_width, window_height)
-        
-        # Centrar la ventana
-        self.center_window()
 
     def center_window(self):
         """Posiciona la ventana en una posición fija"""
         # Posición fija (x, y) - puedes ajustar estos valores
         x = 40  # Distancia desde el borde izquierdo
         y = 40   # Distancia desde el borde superior
-        
-        # O si prefieres centrarla horizontalmente pero con Y fijo:
-        # screen = self.screen()
-        # screen_geometry = screen.geometry()
-        # window_geometry = self.geometry()
-        # x = (screen_geometry.width() - window_geometry.width()) // 2
-        # y = 50  # Posición fija desde arriba
         
         self.move(x, y)
 
@@ -138,12 +133,18 @@ class MainWindow(QMainWindow):
         self.sidebar.variation_applied.connect(self.apply_variation)
         
         # Conectar señales de variaciones
-        # Eliminar esta línea:
-        # self.category_grid.save_variation_requested.connect(self.sidebar.variations_panel.save_current_variation)
         self.category_grid.category_value_changed.connect(self.sidebar.track_category_change)
         
         # Conectar señal para actualizar dropdown de personajes
         self.category_grid.character_saved.connect(self.sidebar.add_character_to_dropdown)
+        
+        # Conectar señal de presets
+        self.sidebar.presets_panel.preset_loaded.connect(self.apply_preset)
+
+    def apply_preset(self, preset_data):
+        """Aplica un preset a las categorías"""
+        if 'categories' in preset_data:
+            self.category_grid.apply_preset(preset_data['categories'])
     
     def apply_variation(self, variation_data):
         """Aplica una variación a las tarjetas de categoría"""

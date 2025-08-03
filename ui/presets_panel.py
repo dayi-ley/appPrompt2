@@ -1,0 +1,538 @@
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
+    QPushButton, QLineEdit, QLabel, QMessageBox, QInputDialog,
+    QDialog, QComboBox, QCheckBox, QScrollArea, QTextEdit, QFileDialog, QGridLayout  # Solo agregar QGridLayout
+)
+from PyQt6.QtCore import Qt, pyqtSignal, QBuffer  # Mover QBuffer aquí
+from PyQt6.QtGui import QFont, QPixmap  # Agregar QPixmap
+from logic.presets_manager import PresetsManager
+from datetime import datetime  # ← AGREGAR ESTE IMPORT
+from PIL import Image  # Agregar para redimensionar imágenes
+import os
+import base64
+import io
+
+class PresetsPanel(QWidget):
+    preset_loaded = pyqtSignal(dict)  # Emite cuando se carga un preset
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent_widget = parent
+        self.presets_manager = PresetsManager()
+        self.setup_ui()
+        self.load_presets()
+    
+    def setup_ui(self):
+        """Configura la interfaz del panel de presets"""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+        
+        # Título
+        title = QLabel("Presets")
+        title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        layout.addWidget(title)
+        
+        # Buscador
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("🔍 Buscar presets...")
+        self.search_box.textChanged.connect(self.filter_presets)
+        layout.addWidget(self.search_box)
+        
+        # Árbol de presets (organizado por carpetas)
+        self.presets_tree = QTreeWidget()
+        self.presets_tree.setHeaderHidden(True)
+        self.presets_tree.itemDoubleClicked.connect(self.load_preset)
+        layout.addWidget(self.presets_tree)
+        
+        # Botones
+        buttons_layout = QHBoxLayout()
+        
+        # Botón Nueva Carpeta - estilizado y más pequeño
+        new_folder_btn = QPushButton("📁Crear Set")
+        new_folder_btn.clicked.connect(self.create_new_folder)
+        new_folder_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2d2d2d;
+                border: 1px solid #404040;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-size: 11px;
+                font-weight: 500;
+                color: #e0e0e0;
+            }
+            QPushButton:hover {
+                background-color: #3d3d3d;
+                border-color: #505050;
+            }
+            QPushButton:pressed {
+                background-color: #1d1d1d;
+            }
+        """)
+        buttons_layout.addWidget(new_folder_btn)
+        
+        # Botón Guardar Preset - estilizado y más pequeño
+        save_btn = QPushButton("💾 Capturar un Preset")
+        save_btn.clicked.connect(self.save_current_as_preset)
+        save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2d4a2d;
+                border: 1px solid #404040;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-size: 11px;
+                font-weight: 500;
+                color: #e0e0e0;
+            }
+            QPushButton:hover {
+                background-color: #3d5a3d;
+                border-color: #505050;
+            }
+            QPushButton:pressed {
+                background-color: #1d3a1d;
+            }
+        """)
+        buttons_layout.addWidget(save_btn)
+        
+        # QUITAR EL BOTÓN "+" - ya no se incluye
+        
+        layout.addLayout(buttons_layout)
+    
+    def load_presets(self):
+        """Carga los presets en el árbol"""
+        self.presets_tree.clear()
+        
+        # Obtener todas las carpetas disponibles (predefinidas + personalizadas)
+        all_folders = self.presets_manager.get_all_preset_folders()
+        
+        for folder_id, folder_info in all_folders.items():
+            # Crear nodo padre
+            category_item = QTreeWidgetItem(self.presets_tree)
+            category_item.setText(0, folder_info['display_name'])
+            category_item.setData(0, Qt.ItemDataRole.UserRole, {
+                'type': 'category',
+                'category_id': folder_id,
+                'is_custom': folder_info.get('is_custom', False)
+            })
+            
+            # Cargar presets de esta categoría
+            presets = self.presets_manager.get_presets_by_category(folder_id)
+            for preset_id, preset_data in presets.items():
+                preset_item = QTreeWidgetItem(category_item)
+                preset_item.setText(0, preset_data.get('name', preset_id))
+                preset_item.setData(0, Qt.ItemDataRole.UserRole, {
+                    'type': 'preset',
+                    'category_id': folder_id,
+                    'preset_id': preset_id,
+                    'preset_data': preset_data
+                })
+        
+        # Expandir todos los nodos
+        self.presets_tree.expandAll()
+    
+    def load_preset(self):
+        """Carga el preset seleccionado"""
+        current_item = self.presets_tree.currentItem()
+        if not current_item:
+            return
+        
+        item_data = current_item.data(0, Qt.ItemDataRole.UserRole)
+        if not item_data or item_data.get('type') != 'preset':
+            return
+        
+        preset_data = item_data.get('preset_data', {})
+        
+        # Emitir señal para aplicar el preset
+        self.preset_loaded.emit(preset_data)
+        
+        QMessageBox.information(
+            self, "Preset Cargado", 
+            f"Se ha aplicado el preset '{preset_data.get('name', 'Sin nombre')}'"
+        )
+    
+    def save_current_as_preset(self):
+        """Guarda los valores actuales como un nuevo preset con selección manual de categorías"""
+        # Buscar el MainWindow navegando por la jerarquía de widgets
+        main_window = None
+        parent = self.parent_widget
+        
+        # Navegar hacia arriba hasta encontrar el MainWindow
+        while parent:
+            if hasattr(parent, 'category_grid'):
+                main_window = parent
+                break
+            parent = parent.parent() if hasattr(parent, 'parent') else None
+        
+        if not main_window or not hasattr(main_window, 'category_grid'):
+            QMessageBox.warning(self, "Error", "No se puede acceder a los valores de categorías.")
+            return
+        
+        # Obtener todos los valores actuales
+        all_values = main_window.category_grid.get_current_values()
+        
+        # Filtrar solo las categorías que tienen contenido
+        categories_with_content = {k: v for k, v in all_values.items() if v and v.strip()}
+        
+        if not categories_with_content:
+            QMessageBox.warning(self, "Sin contenido", "No hay categorías con valores para guardar.")
+            return
+        
+        # Crear diálogo personalizado
+        # Crear diálogo personalizado más ancho
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Guardar Preset")
+        dialog.setModal(True)
+        dialog.resize(900, 700)  # Más ancho para dos columnas
+        
+        # Layout principal horizontal
+        main_layout = QHBoxLayout(dialog)
+        
+        # ===== COLUMNA IZQUIERDA: CATEGORÍAS (70% del ancho) =====
+        left_section = QVBoxLayout()
+        
+        # Título de categorías
+        categories_title = QLabel(f"Seleccionar Categorías ({len(categories_with_content)} disponibles):")
+        categories_title.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 5px;")
+        left_section.addWidget(categories_title)
+        
+        # Botones de selección rápida compactos
+        # Botones de selección rápida con colores
+        quick_select_layout = QHBoxLayout()
+        
+        select_all_btn = QPushButton("✅ Todo")
+        select_all_btn.setMaximumHeight(25)
+        select_all_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+        
+        deselect_all_btn = QPushButton("❌ Nada")
+        deselect_all_btn.setMaximumHeight(25)
+        deselect_all_btn.setStyleSheet("background-color: #f44336; color: white; font-weight: bold;")
+        
+        select_vestuario_btn = QPushButton("👗 Vestuario")
+        select_vestuario_btn.setMaximumHeight(25)
+        select_vestuario_btn.setStyleSheet("background-color: #2196F3; color: white; font-weight: bold;")
+        
+        select_poses_btn = QPushButton("🤸 Poses")
+        select_poses_btn.setMaximumHeight(25)
+        select_poses_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+        
+        select_expresiones_btn = QPushButton("😊 Expresiones")
+        select_expresiones_btn.setMaximumHeight(25)
+        select_expresiones_btn.setStyleSheet("background-color: #FF9800; color: white; font-weight: bold;")
+        
+        quick_select_layout.addWidget(select_all_btn)
+        quick_select_layout.addWidget(deselect_all_btn)
+        quick_select_layout.addWidget(select_vestuario_btn)
+        quick_select_layout.addWidget(select_poses_btn)
+        quick_select_layout.addWidget(select_expresiones_btn)
+        quick_select_layout.addStretch()
+        left_section.addLayout(quick_select_layout)
+        
+        # Área de scroll para categorías (OCUPA TODA LA ALTURA)
+        scroll_area = QScrollArea()
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+        scroll_layout.setSpacing(2)  # Menos espacio entre elementos
+        
+        # Variable para almacenar imagen comprimida
+        compressed_image_data = None
+        
+        # Crear checkboxes para cada categoría con LETRA MÁS GRANDE Y COLORES
+        checkboxes = {}
+        for category, value in categories_with_content.items():
+            checkbox = QCheckBox(f"{category}: {value[:45]}{'...' if len(value) > 45 else ''}")
+            checkbox.setChecked(True)
+            
+            # LETRA MÁS GRANDE (12px) y colores por tipo de categoría
+            category_lower = category.lower()
+            if any(word in category_lower for word in ['vestuario', 'ropa', 'outfit', 'clothing']):
+                # Vestuario - Azul
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #2196F3; font-weight: bold;")
+            elif any(word in category_lower for word in ['pose', 'postura', 'position']):
+                # Poses - Verde
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #4CAF50; font-weight: bold;")
+            elif any(word in category_lower for word in ['expresion', 'expression', 'cara', 'face']):
+                # Expresiones - Naranja
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #FF9800; font-weight: bold;")
+            elif any(word in category_lower for word in ['angulo', 'angle', 'vista', 'view']):
+                # Ángulos - Púrpura
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #9C27B0; font-weight: bold;")
+            elif any(word in category_lower for word in ['iluminacion', 'lighting', 'luz', 'light']):
+                # Iluminación - Amarillo oscuro
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #F57C00; font-weight: bold;")
+            elif any(word in category_lower for word in ['cabello', 'hair', 'pelo']):
+                # Cabello - Marrón
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #795548; font-weight: bold;")
+            elif any(word in category_lower for word in ['ojos', 'eyes', 'mirada']):
+                # Ojos - Cian
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #00BCD4; font-weight: bold;")
+            elif any(word in category_lower for word in ['fondo', 'background', 'escenario']):
+                # Fondo - Gris oscuro
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #607D8B; font-weight: bold;")
+            elif any(word in category_lower for word in ['accesorio', 'accessory', 'complemento']):
+                # Accesorios - Rosa
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #E91E63; font-weight: bold;")
+            else:
+                # Otras categorías - Negro
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #333333; font-weight: bold;")
+            
+            checkboxes[category] = checkbox
+            scroll_layout.addWidget(checkbox)
+        
+        # ESTAS LÍNEAS DEBEN ESTAR FUERA DEL BUCLE:
+        scroll_widget.setLayout(scroll_layout)
+        scroll_area.setWidget(scroll_widget)
+        left_section.addWidget(scroll_area)
+        
+        # ===== COLUMNA DERECHA: CONTROLES (30% del ancho) =====
+        right_section = QVBoxLayout()
+        right_section.setSpacing(15)
+        
+        # Carpeta
+        right_section.addWidget(QLabel("Carpeta:"))
+        type_combo = QComboBox()
+        # Obtener todas las carpetas disponibles
+        all_folders = self.presets_manager.get_all_preset_folders()
+        for folder_id, folder_info in all_folders.items():
+            type_combo.addItem(folder_info['display_name'], folder_id)
+        right_section.addWidget(type_combo)
+        
+        
+        # Nombre del preset
+        right_section.addWidget(QLabel("Nombre del Preset:"))
+        name_input = QLineEdit()
+        right_section.addWidget(name_input)
+        
+        # Separador
+        separator = QLabel()
+        separator.setStyleSheet("border-bottom: 1px solid #ccc; margin: 10px 0;")
+        right_section.addWidget(separator)
+        
+        # Sección de imágenes de referencia (hasta 4)
+        right_section.addWidget(QLabel("Imágenes de Referencia:"))
+        
+        # Container para las 4 imágenes en grid 2x2
+        images_container = QWidget()
+        images_grid = QGridLayout(images_container)
+        images_grid.setSpacing(5)
+        
+        # Crear 4 espacios para imágenes
+        self.image_previews = []
+        for i in range(4):
+            image_preview = QLabel(f"Imagen {i+1}\nNo seleccionada")
+            image_preview.setFixedSize(60, 60)
+            image_preview.setStyleSheet("border: 2px solid gray; background-color: #f0f0f0; border-radius: 4px; font-size: 8px;")
+            image_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            # Posicionar en grid 2x2
+            row = i // 2
+            col = i % 2
+            images_grid.addWidget(image_preview, row, col)
+            self.image_previews.append(image_preview)
+        
+        right_section.addWidget(images_container)
+        
+        # Botones para manejo de imágenes
+        images_buttons_layout = QHBoxLayout()
+        
+        select_images_btn = QPushButton("📷 Agregar Imagen")
+        select_images_btn.setMaximumHeight(25)
+        images_buttons_layout.addWidget(select_images_btn)
+        
+        clear_images_btn = QPushButton("🗑️ Limpiar Todo")
+        clear_images_btn.setMaximumHeight(25)
+        images_buttons_layout.addWidget(clear_images_btn)
+        
+        # Inicializar lista de imágenes seleccionadas
+        if not hasattr(self, 'selected_images'):
+            self.selected_images = []
+        
+        # Funciones para manejo de imágenes
+        def select_image():
+            """Selecciona una imagen y la agrega a la lista"""
+            if len(self.selected_images) >= 4:
+                QMessageBox.information(dialog, "Límite alcanzado", "Ya has seleccionado el máximo de 4 imágenes.")
+                return
+            
+            file_path, _ = QFileDialog.getOpenFileName(
+                dialog,
+                "Seleccionar imagen de referencia",
+                "",
+                "Archivos de imagen (*.png *.jpg *.jpeg *.bmp *.gif)"
+            )
+            
+            if file_path:
+                try:
+                    # Cargar y redimensionar la imagen
+                    pil_image = Image.open(file_path)
+                    pil_image.thumbnail((60, 60), Image.Resampling.LANCZOS)
+                    
+                    # Convertir a QPixmap
+                    buffer = QBuffer()
+                    buffer.open(QBuffer.OpenModeFlag.WriteOnly)
+                    pil_image.save(buffer, format='PNG')
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(buffer.data())
+                    
+                    # Agregar a la lista
+                    self.selected_images.append(file_path)
+                    
+                    # Actualizar la vista previa
+                    index = len(self.selected_images) - 1
+                    if index < len(self.image_previews):
+                        self.image_previews[index].setPixmap(pixmap)
+                        self.image_previews[index].setText("")
+                        self.image_previews[index].setStyleSheet("border: 2px solid #4CAF50; background-color: white; border-radius: 4px;")
+                    
+                except Exception as e:
+                    QMessageBox.warning(dialog, "Error", f"No se pudo cargar la imagen: {str(e)}")
+        
+        def clear_all_images():
+            """Limpia todas las imágenes seleccionadas"""
+            self.selected_images.clear()
+            for i, preview in enumerate(self.image_previews):
+                preview.clear()
+                preview.setText(f"Imagen {i+1}\nNo seleccionada")
+                preview.setStyleSheet("border: 2px solid gray; background-color: #f0f0f0; border-radius: 4px; font-size: 8px;")
+        
+        # Conectar botones
+        select_images_btn.clicked.connect(select_image)
+        clear_images_btn.clicked.connect(clear_all_images)
+        
+        # Espaciador para empujar botones hacia abajo
+        right_section.addStretch()
+        
+        # Botones de acción
+        buttons_layout = QHBoxLayout()
+        cancel_btn = QPushButton("Cancelar")
+        save_btn = QPushButton("💾 Guardar Preset")
+        save_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+        buttons_layout.addWidget(cancel_btn)
+        buttons_layout.addWidget(save_btn)
+        right_section.addLayout(buttons_layout)
+        
+        # Agregar las dos columnas al layout principal
+        main_layout.addLayout(left_section, 7)  # 70% del ancho
+        main_layout.addLayout(right_section, 3)  # 30% del ancho
+        
+        # Función para guardar el preset
+        def save_preset():
+            """Guarda el preset con las categorías y configuraciones seleccionadas"""
+            preset_name = name_input.text().strip()
+            if not preset_name:
+                QMessageBox.warning(dialog, "Error", "Por favor ingresa un nombre para el preset.")
+                return
+            
+            # Obtener la carpeta seleccionada
+            selected_folder = type_combo.currentData()
+            if not selected_folder:
+                QMessageBox.warning(dialog, "Error", "Por favor selecciona una carpeta.")
+                return
+            
+            # Obtener las categorías seleccionadas
+            selected_categories = {}
+            for category, checkbox in checkboxes.items():
+                if checkbox.isChecked():
+                    if category in categories_with_content:
+                        selected_categories[category] = categories_with_content[category]
+            
+            if not selected_categories:
+                QMessageBox.warning(dialog, "Error", "Por favor selecciona al menos una categoría.")
+                return
+            
+            try:
+                # Crear el preset
+                preset_data = {
+                    'name': preset_name,
+                    'categories': selected_categories,
+                    'images': getattr(self, 'selected_images', []),
+                    'created_at': datetime.now().isoformat()
+                }
+                
+                # Guardar usando el presets_manager
+                success = self.presets_manager.save_preset(selected_folder, preset_name, preset_data)
+                
+                if success:
+                    QMessageBox.information(dialog, "Éxito", f"Preset '{preset_name}' guardado correctamente.")
+                    # Recargar la lista de presets
+                    self.load_presets()
+                    dialog.accept()
+                else:
+                    QMessageBox.warning(dialog, "Error", "No se pudo guardar el preset.")
+                    
+            except Exception as e:
+                QMessageBox.critical(dialog, "Error", f"Error al guardar el preset: {str(e)}")
+        
+        # Conectar botones
+        cancel_btn.clicked.connect(dialog.reject)
+        save_btn.clicked.connect(save_preset)
+        
+        dialog.exec()
+
+    def filter_presets(self, text):
+        """Filtra los presets basado en el texto de búsqueda"""
+        search_text = text.lower().strip()
+        
+        # Iterar por todos los elementos del árbol
+        root = self.presets_tree.invisibleRootItem()
+        for i in range(root.childCount()):
+            folder_item = root.child(i)
+            folder_visible = False
+            
+            # Verificar si el nombre de la carpeta coincide
+            if search_text in folder_item.text(0).lower():
+                folder_visible = True
+            
+            # Verificar presets dentro de la carpeta
+            for j in range(folder_item.childCount()):
+                preset_item = folder_item.child(j)
+                preset_name = preset_item.text(0).lower()
+                
+                if search_text == "" or search_text in preset_name:
+                    preset_item.setHidden(False)
+                    folder_visible = True
+                else:
+                    preset_item.setHidden(True)
+            
+            # Mostrar/ocultar carpeta basado en si tiene presets visibles
+            folder_item.setHidden(not folder_visible)
+            
+            # Expandir carpeta si hay coincidencias y texto de búsqueda
+            if folder_visible and search_text:
+                folder_item.setExpanded(True)
+            elif not search_text:
+                folder_item.setExpanded(False)
+
+    def show_all_items(self):
+        """Muestra todos los elementos del árbol"""
+        root = self.presets_tree.invisibleRootItem()
+        for i in range(root.childCount()):
+            folder_item = root.child(i)
+            folder_item.setHidden(False)
+            folder_item.setExpanded(False)
+            
+            for j in range(folder_item.childCount()):
+                preset_item = folder_item.child(j)
+                preset_item.setHidden(False)
+
+    def create_new_folder(self):
+        """Crea una nueva carpeta para organizar presets"""
+        folder_name, ok = QInputDialog.getText(
+            self, "Nueva Carpeta", "Nombre de la carpeta:"
+        )
+        
+        if ok and folder_name.strip():
+            try:
+                success = self.presets_manager.create_custom_folder(folder_name.strip())
+                if success:
+                    self.load_presets()  # Recargar para mostrar la nueva carpeta
+                    QMessageBox.information(
+                        self, "Éxito", f"Carpeta '{folder_name}' creada exitosamente."
+                    )
+                else:
+                    QMessageBox.warning(
+                        self, "Error", f"No se pudo crear la carpeta. Puede que ya exista una carpeta con ese nombre."
+                    )
+            except Exception as e:
+                QMessageBox.warning(
+                    self, "Error", f"No se pudo crear la carpeta: {str(e)}"
+                )

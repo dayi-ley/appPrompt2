@@ -631,3 +631,25 @@ def capture_initial_snapshot(self):
         main_window.sidebar.original_values_snapshot = current_values.copy()
         main_window.sidebar.changes_tracker = {}  # Limpiar tracker
         print(f"Snapshot inicial capturado: {len(current_values)} categorías")
+
+
+def apply_preset(self, preset_categories):
+    """Aplica los valores de un preset de forma acumulativa"""
+    for category_name, preset_value in preset_categories.items():
+        # Buscar la tarjeta correspondiente
+        for card in self.cards:
+            if hasattr(card, 'category_name') and card.category_name == category_name:
+                if hasattr(card, 'input_field'):
+                    current_value = card.input_field.text().strip()
+                    
+                    if current_value:
+                        # Si ya hay contenido, agregar el preset separado por coma
+                        new_value = f"{current_value}, {preset_value}"
+                    else:
+                        # Si está vacío, usar solo el valor del preset
+                        new_value = preset_value
+                    
+                    card.input_field.setText(new_value)
+                break
+    
+    # Actualizar el prompt después de aplicar el preset

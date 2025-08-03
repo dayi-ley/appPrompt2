@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor
 from ui.variations_panel import VariationsPanel
+from ui.presets_panel import PresetsPanel  # ← AGREGAR ESTA LÍNEA
 from logic.variations_manager import VariationsManager
 import os
 import json
@@ -11,27 +12,29 @@ from datetime import datetime
 
 class SidebarFrame(QFrame):
     character_defaults_selected = pyqtSignal(dict)
-    variation_applied = pyqtSignal(dict)  # Nueva señal para aplicar variaciones
+    variation_applied = pyqtSignal(dict)
     
-    def __init__(self, prompt_generator):
+    def __init__(self, prompt_generator, main_window=None):
         super().__init__()
         self.prompt_generator = prompt_generator
+        self.main_window = main_window  # ← Agregar referencia al MainWindow
         self.is_collapsed = False
-        self.expanded_width = 280  # Aumentado para acomodar el panel de variaciones
+        self.expanded_width = 280
         self.collapsed_width = 60
         
         # Inicializar el manager de variaciones
         self.variations_manager = VariationsManager()
         
         # Sistema de tracking de cambios
-        self.original_values_snapshot = {}  # Valores cuando se cargó la variación
-        self.changes_tracker = {}  # Registro de cambios específicos
+        self.original_values_snapshot = {}
+        self.changes_tracker = {}
         
         self.setup_ui()
         self.setup_styles()
         self.setup_data()
         self.connect_variation_signals()
 
+    # En el método setup_ui(), después de la pestaña de Variaciones:
     def setup_ui(self):
         """Configura la interfaz del sidebar"""
         self.setFixedWidth(self.expanded_width)
@@ -70,15 +73,49 @@ class SidebarFrame(QFrame):
         
         # Widget de pestañas
         self.tab_widget = QTabWidget()
+        self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
+        self.tab_widget.setUsesScrollButtons(False)  # Desactiva scroll buttons
+        self.tab_widget.setElideMode(Qt.TextElideMode.ElideRight)  # Trunca texto si es necesario
+        
+        # Aplicar estilo para hacer las pestañas más pequeñas
+        self.tab_widget.setStyleSheet("""
+            QTabWidget::tab-bar {
+                alignment: center;
+            }
+            QTabBar::tab {
+                background-color: #28104e;
+                border-bottom-color: #C2C7CB;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                min-width: 60px;
+                max-width: 80px;
+                padding: 4px 8px;
+                font-size: 10px;  /* ← Letra más pequeña */
+                font-weight: normal;
+            }
+            QTabBar::tab:selected {
+                background-color: #9854cb;
+                border-bottom-color: #ffffff;
+            }
+            QTabBar::tab:hover {
+                background-color: #6437a0;
+            }
+        """)
         
         # Pestaña de Personajes
         self.character_tab = QWidget()
-        self.setup_character_tab()  # Llamar al método
+        self.setup_character_tab()
         self.tab_widget.addTab(self.character_tab, "Personajes")
         
         # Pestaña de Variaciones
         self.variations_panel = VariationsPanel(self.variations_manager, self.prompt_generator)
         self.tab_widget.addTab(self.variations_panel, "Variaciones")
+        
+        # ← NUEVA PESTAÑA DE PRESETS
+        # En el método setup_ui(), cambiar la línea 114:
+        # Cambiar esta línea:
+        self.presets_panel = PresetsPanel(self.main_window)  # ← Pasar MainWindow en lugar de self
+        self.tab_widget.addTab(self.presets_panel, "Presets")
         
         content_layout.addWidget(self.tab_widget)
         layout.addWidget(self.content_widget)
