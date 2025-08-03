@@ -42,7 +42,8 @@ class PresetsPanel(QWidget):
         # Árbol de presets (organizado por carpetas)
         self.presets_tree = QTreeWidget()
         self.presets_tree.setHeaderHidden(True)
-        self.presets_tree.itemDoubleClicked.connect(self.load_preset)
+        # Conectar doble clic para cargar preset
+        self.presets_tree.itemDoubleClicked.connect(self.load_selected_preset)
         layout.addWidget(self.presets_tree)
         
         # Botones
@@ -130,25 +131,44 @@ class PresetsPanel(QWidget):
         # Expandir todos los nodos
         self.presets_tree.expandAll()
     
-    def load_preset(self):
-        """Carga el preset seleccionado"""
-        current_item = self.presets_tree.currentItem()
-        if not current_item:
-            return
+    def load_selected_preset(self, item, column):
+        """Carga el preset seleccionado al hacer doble clic con confirmación"""
+        # Verificar que es un preset (no una carpeta)
+        if item.parent() is None:
+            return  # Es una carpeta, no un preset
+            
+        preset_name = item.text(0)
+        folder_name = item.parent().text(0).replace('📂 ', '')
         
-        item_data = current_item.data(0, Qt.ItemDataRole.UserRole)
-        if not item_data or item_data.get('type') != 'preset':
-            return
-        
-        preset_data = item_data.get('preset_data', {})
-        
-        # Emitir señal para aplicar el preset
-        self.preset_loaded.emit(preset_data)
-        
-        QMessageBox.information(
-            self, "Preset Cargado", 
-            f"Se ha aplicado el preset '{preset_data.get('name', 'Sin nombre')}'"
+        # Mostrar diálogo de confirmación
+        reply = QMessageBox.question(
+            self, 
+            "Cargar Preset", 
+            f"¿Deseas cargar el preset '{preset_name}'?\n\n"
+            f"Esto limpiará los valores actuales de las categorías\n"
+            f"incluidas en este preset y los reemplazará con\n"
+            f"los valores guardados.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
         )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # Cargar el preset
+            preset_data = self.presets_manager.load_preset(
+                folder_name.lower().replace(' ', '_'), 
+                preset_name
+            )
+            
+            if preset_data:
+                # Emitir señal con los datos del preset
+                self.preset_loaded.emit(preset_data)
+
+            else:
+                QMessageBox.warning(
+                    self, 
+                    "Error", 
+                    f"No se pudo cargar el preset '{preset_name}'."
+                )
     
     def save_current_as_preset(self):
         """Guarda los valores actuales como un nuevo preset con selección manual de categorías"""
@@ -208,7 +228,7 @@ class PresetsPanel(QWidget):
         
         select_vestuario_btn = QPushButton("👗 Vestuario")
         select_vestuario_btn.setMaximumHeight(25)
-        select_vestuario_btn.setStyleSheet("background-color: #2196F3; color: white; font-weight: bold;")
+        select_vestuario_btn.setStyleSheet("background-color: #553c9a; color: white; font-weight: bold;")
         
         select_poses_btn = QPushButton("🤸 Poses")
         select_poses_btn.setMaximumHeight(25)
@@ -245,7 +265,7 @@ class PresetsPanel(QWidget):
             category_lower = category.lower()
             if any(word in category_lower for word in ['vestuario', 'ropa', 'outfit', 'clothing']):
                 # Vestuario - Azul
-                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #2196F3; font-weight: bold;")
+                checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #af69cd; font-weight: bold;")
             elif any(word in category_lower for word in ['pose', 'postura', 'position']):
                 # Poses - Verde
                 checkbox.setStyleSheet("font-size: 12px; padding: 3px; color: #4CAF50; font-weight: bold;")
@@ -281,6 +301,51 @@ class PresetsPanel(QWidget):
         scroll_widget.setLayout(scroll_layout)
         scroll_area.setWidget(scroll_widget)
         left_section.addWidget(scroll_area)
+        
+        # ===== FUNCIONES PARA BOTONES DE SELECCIÓN RÁPIDA =====
+        def select_all():
+            """Selecciona todos los checkboxes"""
+            for checkbox in checkboxes.values():
+                checkbox.setChecked(True)
+        
+        def deselect_all():
+            """Deselecciona todos los checkboxes"""
+            for checkbox in checkboxes.values():
+                checkbox.setChecked(False)
+        
+        def select_vestuario():
+            """Selecciona solo categorías de vestuario"""
+            for category, checkbox in checkboxes.items():
+                category_lower = category.lower()
+                if any(word in category_lower for word in ['vestuario', 'ropa', 'outfit', 'clothing']):
+                    checkbox.setChecked(True)
+                else:
+                    checkbox.setChecked(False)
+        
+        def select_poses():
+            """Selecciona solo categorías de poses"""
+            for category, checkbox in checkboxes.items():
+                category_lower = category.lower()
+                if any(word in category_lower for word in ['pose', 'postura', 'position']):
+                    checkbox.setChecked(True)
+                else:
+                    checkbox.setChecked(False)
+        
+        def select_expresiones():
+            """Selecciona solo categorías de expresiones"""
+            for category, checkbox in checkboxes.items():
+                category_lower = category.lower()
+                if any(word in category_lower for word in ['expresion', 'expression', 'cara', 'face']):
+                    checkbox.setChecked(True)
+                else:
+                    checkbox.setChecked(False)
+        
+        # ===== CONECTAR BOTONES A SUS FUNCIONES =====
+        select_all_btn.clicked.connect(select_all)
+        deselect_all_btn.clicked.connect(deselect_all)
+        select_vestuario_btn.clicked.connect(select_vestuario)
+        select_poses_btn.clicked.connect(select_poses)
+        select_expresiones_btn.clicked.connect(select_expresiones)
         
         # ===== COLUMNA DERECHA: CONTROLES (30% del ancho) =====
         right_section = QVBoxLayout()

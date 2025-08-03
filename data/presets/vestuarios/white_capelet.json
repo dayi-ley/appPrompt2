@@ -1,0 +1,17 @@
+{
+  "presets": {
+    "white_capelet": {
+      "name": "white capelet",
+      "categories": {
+        "Vestuario general": " white capelet, long sleeves, gold cuffs, see-through, midriff, ruby buttons, (bare hands),",
+        "Vestuario superior": "white micro top, minimal bralette,",
+        "Vestuario inferior": "micro bottom, white skirt,",
+        "Vestuario accesorios": "neck collar, earrings,",
+        "Ropa interior superior": "white micro swimwear, string bikini, minimal coverage,",
+        "Ropa interior inferior": "underwear, g-string, thong, string bottom, string thong,"
+      },
+      "images": [],
+      "created_at": "2025-08-03T14:57:20.292695"
+    }
+  }
+}

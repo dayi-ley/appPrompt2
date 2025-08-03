@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil  # ← AGREGAR ESTE IMPORT
 from typing import Dict, Any
 from datetime import datetime  # ← AGREGAR ESTE IMPORT
 
@@ -87,8 +88,8 @@ class PresetsManager:
         
         return all_presets
     
-    def save_preset(self, preset_type, preset_name, description, selected_categories):
-        """Guarda un preset con las categorías seleccionadas manualmente"""
+    def save_preset(self, preset_type, preset_name, preset_data):
+        """Guarda un preset con las categorías seleccionadas y las imágenes"""
         # Crear directorio si no existe
         category_dir = os.path.join(self.presets_dir, preset_type)
         os.makedirs(category_dir, exist_ok=True)
@@ -96,24 +97,41 @@ class PresetsManager:
         # Generar nombre de archivo seguro
         safe_filename = re.sub(r'[^\w\s-]', '', preset_name).strip()
         safe_filename = re.sub(r'[-\s]+', '_', safe_filename).lower()
-        file_path = os.path.join(category_dir, f"{safe_filename}.json")
+        
+        # Crear carpeta de imágenes si hay imágenes
+        images_data = []
+        if preset_data.get('images'):
+            images_dir = os.path.join(category_dir, f"{safe_filename}_images")
+            os.makedirs(images_dir, exist_ok=True)
+            
+            for i, image_path in enumerate(preset_data['images']):
+                if os.path.exists(image_path):
+                    # Copiar imagen a la carpeta del preset
+                    import shutil
+                    file_extension = os.path.splitext(image_path)[1]
+                    new_image_name = f"image_{i+1}{file_extension}"
+                    new_image_path = os.path.join(images_dir, new_image_name)
+                    shutil.copy2(image_path, new_image_path)
+                    images_data.append(new_image_name)
         
         # Crear estructura del preset
-        preset_data = {
+        preset_structure = {
             "presets": {
                 safe_filename: {
                     "name": preset_name,
-                    "description": description,
-                    "categories": selected_categories
+                    "categories": preset_data['categories'],
+                    "images": images_data,
+                    "created_at": preset_data.get('created_at', datetime.now().isoformat())
                 }
             }
         }
         
-        # Guardar archivo
+        # Guardar archivo JSON
+        file_path = os.path.join(category_dir, f"{safe_filename}.json")
         with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(preset_data, f, indent=2, ensure_ascii=False)
+            json.dump(preset_structure, f, indent=2, ensure_ascii=False)
         
-        return file_path
+        return True
     
     def get_all_preset_folders(self):
         """Obtiene todas las carpetas de presets (solo personalizadas)"""
@@ -163,3 +181,36 @@ class PresetsManager:
         sanitized = re.sub(r'\s+', '_', sanitized)  # Espacios a guiones bajos
         sanitized = re.sub(r'_+', '_', sanitized)  # Múltiples guiones bajos a uno solo
         return sanitized.strip('_')  # Quitar guiones bajos al inicio/final
+    
+    def load_preset(self, preset_type, preset_name):
+        """Carga un preset específico"""
+        # Generar nombre de archivo seguro
+        safe_filename = re.sub(r'[^\w\s-]', '', preset_name).strip()
+        safe_filename = re.sub(r'[-\s]+', '_', safe_filename).lower()
+        
+        file_path = os.path.join(self.presets_dir, preset_type, f"{safe_filename}.json")
+        
+        if not os.path.exists(file_path):
+            return None
+            
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+            preset_data = data.get('presets', {}).get(safe_filename, {})
+            
+            # Cargar rutas completas de imágenes
+            if preset_data.get('images'):
+                images_dir = os.path.join(self.presets_dir, preset_type, f"{safe_filename}_images")
+                full_image_paths = []
+                for image_name in preset_data['images']:
+                    full_path = os.path.join(images_dir, image_name)
+                    if os.path.exists(full_path):
+                        full_image_paths.append(full_path)
+                preset_data['images'] = full_image_paths
+                
+            return preset_data
+            
+        except Exception as e:
+            print(f"Error al cargar preset: {e}")
+            return None

@@ -1,0 +1,16 @@
+{
+  "presets": {
+    "swimsuit": {
+      "name": "Swimsuit",
+      "categories": {
+        "Vestuario general": "swimsuit under clothes, tactical clothes, school swimsuit, blue leotard, playboy bunny, detached collar, wrist cuffs, cleavage,",
+        "Vestuario superior": "white shirt, blue sailor collar, blue neckerchief, short sleeve shirt, sailor shirt,",
+        "Vestuario inferior": "((silver skirt)),",
+        "Vestuario accesorios": "gloves, fingerless gloves, choker,",
+        "Ropa interior superior": "swimsuit under clothes, Eyepatch bikini,"
+      },
+      "images": [],
+      "created_at": "2025-08-03T14:24:34.513503"
+    }
+  }
+}
