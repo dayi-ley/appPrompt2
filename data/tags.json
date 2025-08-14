@@ -1,9 +1,14 @@
 {
   "angulo": [
-    "high angle",
+    "frontal view",
     "low angle",
+    "high angle",
     "medium angle",
-    "lateral angle"
+    "lateral angle",
+    "from above",
+    "from below",
+    "from behind",
+    "dutch angle"
   ],
   "calidad_tecnica": [
     "newest",
@@ -73,7 +78,11 @@
     "twintails",
     "long hair",
     "bangs",
-    "messy hair"
+    "messy hair",
+    "straight hair",
+    "waist-length",
+    "pointed bangs",
+    "side-swept bangs"
   ],
   "cabello_color": [
     "white hair",
@@ -166,11 +175,14 @@
     "string bikini"
   ],
   "ropa_interior_inferior": [
-    "swimsuit under clothes",
+    "micro thong",
     "Eyepatch bikini",
     "g-string, thong,",
+    "swimsuit under clothes",
     "string thong",
-    "underwear"
+    "underwear",
+    "minithong",
+    "panties"
   ],
   "ropa_interior_accesorios": [
     "swimsuit under clothes",
@@ -195,8 +207,8 @@
     "slender legs"
   ],
   "pose_actitud_global": [
-    "wide hips",
     "standing",
+    "wide hips",
     "sitting",
     "kneeling",
     "lying down"
@@ -216,9 +228,9 @@
     "knees together"
   ],
   "orientacion_personaje": [
+    "facing forward",
     "Diagonal back view",
     "Full back view",
-    "facing forward",
     "turned to the side",
     "looking back",
     "angled pose"
@@ -254,6 +266,9 @@
     "looking at viewer",
     "looking away",
     "looking down",
-    "looking up"
-  ]
+    "looking up",
+    "from view",
+    "from below"
+  ],
+  "aaa": []
 }

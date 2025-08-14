@@ -56,7 +56,7 @@ class CategoryGridFrame(QWidget):
         
         # Botón para importar datos
         self.import_data_btn = QPushButton("Importar Datos")
-        self.import_data_btn.clicked.connect(self.import_data_dialog)
+        self.import_data_btn.clicked.connect(self.validate_and_load)
         search_layout.addWidget(self.import_data_btn)
         
         # Nuevo botón para guardar
@@ -1042,23 +1042,20 @@ class CategoryGridFrame(QWidget):
 
     def apply_preset(self, preset_data):
         """Aplica un preset a las categorías, limpiando solo las categorías seleccionadas"""
-        print(f"DEBUG apply_preset: preset_data = {preset_data}")  # DEBUG
-        
         if not preset_data:
-            print("DEBUG: preset_data está vacío")  # DEBUG
             return
         
         # Verificar si preset_data ya contiene las categorías directamente
         # o si tiene la estructura anidada
         if 'categories' in preset_data:
-            # Estructura anidada: {"name": "...", "categories": {...}}
+            # preset_data tiene estructura anidada
             preset_categories = preset_data.get('categories', {})
-            preset_name = preset_data.get('name', 'Preset')
+            preset_name = preset_data.get('name', preset_data.get('preset_display_name', '.'))
         else:
             # Las categorías están directamente en preset_data
             preset_categories = preset_data
-            # Obtener el nombre del preset desde preset_data si existe
-            preset_name = preset_data.get('name', 'Preset')
+            # Usar el nombre pasado desde presets_panel o el del preset_data
+            preset_name = preset_data.get('preset_display_name', preset_data.get('name', 'Preset'))
         
         print(f"DEBUG: preset_categories = {preset_categories}")  # DEBUG
         
@@ -1247,71 +1244,6 @@ class ImportDataDialog(QDialog):
         return self.imported_data
 
 
-
-
-    def setup_ui(self):
-        """Configura la interfaz del grid"""
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(16, 0, 16, 16)
-        self.main_layout.setSpacing(0)
-        
-        # --- Layout horizontal para buscador y botones ---
-        search_layout = QHBoxLayout()
-        search_layout.setSpacing(8)
-        
-        # Buscador
-        self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText("Buscar categoría...")
-        self.search_box.textChanged.connect(self.filter_cards)
-        search_layout.addWidget(self.search_box)
-        
-        # Botón para importar datos
-        self.import_data_btn = QPushButton("Importar Datos")
-        self.import_data_btn.clicked.connect(self.import_data_dialog)
-        search_layout.addWidget(self.import_data_btn)
-        
-        # Nuevo botón para guardar
-        self.save_btn = QPushButton("Guardar")
-        self.save_btn.clicked.connect(self.show_save_options)
-        self.save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #446879;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 4px 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #acc8d7;
-            }
-            QPushButton:pressed {
-                background-color: #E65100;
-            }
-        """)
-        search_layout.addWidget(self.save_btn)
-        
-        self.main_layout.addLayout(search_layout)
-
-        # Scroll area
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        
-        # Widget contenedor para el grid
-        self.grid_widget = QWidget()
-        self.grid_layout = QGridLayout(self.grid_widget)
-        self.grid_layout.setSpacing(8)
-        
-        # Hacer el grid responsivo
-        self.grid_layout.setColumnStretch(0, 1)
-        self.grid_layout.setColumnStretch(1, 1)
-        self.grid_layout.setColumnStretch(2, 1)
-        
-        self.scroll_area.setWidget(self.grid_widget)
-        self.main_layout.addWidget(self.scroll_area)
-        
     def setup_styles(self):
         """Configura los estilos del grid"""
         self.setStyleSheet("""

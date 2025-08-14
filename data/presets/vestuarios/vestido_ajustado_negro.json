@@ -1,0 +1,16 @@
+{
+  "presets": {
+    "vestido_ajustado_negro": {
+      "name": "vestido ajustado negro",
+      "categories": {
+        "Vestuario general": "black dress,",
+        "Vestuario superior": "strapless dress,",
+        "Vestuario inferior": "short dress,",
+        "Vestuario accesorios": "detached sleeves, black sleeves, choker, gloves, elbow gloves, fingerless gloves,",
+        "Ropa interior inferior": "black panties, pantyhose,"
+      },
+      "images": [],
+      "created_at": "2025-08-04T14:36:29.852157"
+    }
+  }
+}

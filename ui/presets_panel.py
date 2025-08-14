@@ -1,10 +1,11 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTreeWidget, QTreeWidgetItem,
     QPushButton, QLineEdit, QLabel, QMessageBox, QInputDialog,
-    QDialog, QComboBox, QCheckBox, QScrollArea, QTextEdit, QFileDialog, QGridLayout  # Solo agregar QGridLayout
+    QDialog, QComboBox, QCheckBox, QScrollArea, QTextEdit, QFileDialog, QGridLayout,
+    QToolTip, QFrame  # Mantener QToolTip y QFrame
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QBuffer  # Mover QBuffer aquí
-from PyQt6.QtGui import QFont, QPixmap  # Agregar QPixmap
+from PyQt6.QtCore import Qt, pyqtSignal, QBuffer, QPoint  # Remover QTimer
+from PyQt6.QtGui import QFont, QPixmap, QCursor
 from logic.presets_manager import PresetsManager
 from datetime import datetime  # ← AGREGAR ESTE IMPORT
 from PIL import Image  # Agregar para redimensionar imágenes
@@ -19,6 +20,7 @@ class PresetsPanel(QWidget):
         super().__init__(parent)
         self.parent_widget = parent
         self.presets_manager = PresetsManager()
+
         self.setup_ui()
         self.load_presets()
     
@@ -42,6 +44,9 @@ class PresetsPanel(QWidget):
         # Árbol de presets (organizado por carpetas)
         self.presets_tree = QTreeWidget()
         self.presets_tree.setHeaderHidden(True)
+        # CAMBIO: Configurar para click derecho directo
+        self.presets_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.presets_tree.customContextMenuRequested.connect(self.show_preset_preview)
         # Conectar doble clic para cargar preset
         self.presets_tree.itemDoubleClicked.connect(self.load_selected_preset)
         layout.addWidget(self.presets_tree)
@@ -160,6 +165,8 @@ class PresetsPanel(QWidget):
             )
             
             if preset_data:
+                # Agregar el nombre del preset a los datos antes de emitir la señal
+                preset_data['preset_display_name'] = preset_name
                 # Emitir señal con los datos del preset
                 self.preset_loaded.emit(preset_data)
 
@@ -551,6 +558,122 @@ class PresetsPanel(QWidget):
         
         dialog.exec()
 
+    def show_context_menu(self, position):
+        """Muestra menú contextual con vista previa de imágenes al hacer click derecho"""
+        item = self.presets_tree.itemAt(position)
+        if not item or item.parent() is None:
+            # Es una carpeta o no hay item, no mostrar menú
+            return
+            
+        # Obtener datos del preset
+        item_data = item.data(0, Qt.ItemDataRole.UserRole)
+        if not item_data or item_data.get('type') != 'preset':
+            return
+        
+        # Crear menú contextual
+        context_menu = QMenu(self)
+        
+        # Acción para cargar preset
+        load_action = QAction("🔄 Cargar Preset", self)
+        load_action.triggered.connect(lambda: self.load_selected_preset(item, 0))
+        context_menu.addAction(load_action)
+        
+        # Separador
+        context_menu.addSeparator()
+        
+        # Acción para vista previa (que mostrará el tooltip)
+        preview_action = QAction("👁️ Vista Previa", self)
+        preview_action.triggered.connect(lambda: self.show_preset_preview(item, position))
+        context_menu.addAction(preview_action)
+        
+        # Mostrar menú en la posición del click
+        global_pos = self.presets_tree.mapToGlobal(position)
+        context_menu.exec(global_pos)
+
+    def show_preset_preview(self, position):
+        """Muestra vista previa de imágenes del preset al hacer click derecho"""
+        print(f"DEBUG: show_preset_preview llamado en posición {position}")
+        
+        item = self.presets_tree.itemAt(position)
+        if not item or item.parent() is None:
+            print("DEBUG: No es un preset válido")
+            return
+            
+        # Obtener datos del preset
+        item_data = item.data(0, Qt.ItemDataRole.UserRole)
+        if not item_data or item_data.get('type') != 'preset':
+            print("DEBUG: Item no tiene datos de preset")
+            return
+            
+        preset_data = item_data.get('preset_data', {})
+        preset_name = preset_data.get('name', 'Sin nombre')
+        categories_count = len(preset_data.get('categories', {}))
+        
+        print(f"DEBUG: Preset name: {preset_name}, categories: {categories_count}")
+        
+        # Cargar las rutas completas de las imágenes
+        category_id = item_data.get('category_id')
+        
+        # Usar el presets_manager para cargar las imágenes correctamente
+        full_preset_data = self.presets_manager.load_preset(category_id, preset_name)
+        images = full_preset_data.get('images', []) if full_preset_data else []
+        
+        print(f"DEBUG: Imágenes encontradas: {len(images)}")
+        
+        # Crear contenido del tooltip
+        tooltip_html = f"""<div style='background-color: #2d2d2d; padding: 20px; border-radius: 10px; max-width: 600px; min-width: 400px; border: 3px solid #00ff00; box-shadow: 0 4px 8px rgba(0,0,0,0.5);'>
+            <h3 style='color: #00ff00; margin: 0 0 15px 0; font-size: 18px; font-weight: bold; text-align: center;'>{preset_name}</h3>
+            <p style='color: #ffffff; margin: 0 0 15px 0; font-size: 14px; text-align: center;'>📁 {categories_count} categorías</p>"""
+        
+        if images:
+            print(f"DEBUG: Procesando {len(images)} imágenes")
+            # Cargar y mostrar hasta 4 imágenes en miniatura
+            images_html = "<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px;'>"
+            for i, image_path in enumerate(images[:4]):
+                print(f"DEBUG: Procesando imagen {i+1}: {image_path}")
+                if os.path.exists(image_path):
+                    try:
+                        # Cargar y redimensionar imagen
+                        pixmap = QPixmap(image_path)
+                        if not pixmap.isNull():
+                            # Redimensionar a 150x150 manteniendo aspecto
+                            scaled_pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                            
+                            # Convertir a base64 para HTML
+                            buffer = QBuffer()
+                            buffer.open(QBuffer.OpenModeFlag.WriteOnly)
+                            scaled_pixmap.save(buffer, "PNG")
+                            image_data = buffer.data().toBase64().data().decode()
+                            
+                            images_html += f"<img src='data:image/png;base64,{image_data}' style='width: 150px; height: 150px; border-radius: 8px; object-fit: cover; border: 2px solid #00ff00; box-shadow: 0 2px 4px rgba(0,255,0,0.3);'>"
+                            print(f"DEBUG: Imagen {i+1} procesada correctamente")
+                        else:
+                            print(f"DEBUG: Error: pixmap nulo para {image_path}")
+                    except Exception as e:
+                        print(f"DEBUG: Error cargando imagen {image_path}: {e}")
+                else:
+                    print(f"DEBUG: Imagen no existe: {image_path}")
+                    
+            images_html += "</div>"
+            tooltip_html += images_html
+        else:
+            tooltip_html += "<p style='color: #ffff00; margin: 0; font-size: 14px; font-style: italic; text-align: center;'>⚠️ Sin imágenes disponibles</p>"
+            
+        tooltip_html += "</div>"
+        
+        # Mostrar tooltip en la posición del click derecho
+        global_pos = self.presets_tree.mapToGlobal(position)
+        global_pos.setX(global_pos.x() + 15)
+        global_pos.setY(global_pos.y() - 15)
+        
+        print(f"DEBUG: Posición global del tooltip: {global_pos}")
+        print(f"DEBUG: Contenido HTML del tooltip: {tooltip_html[:200]}...")
+        
+        # Mostrar tooltip que permanecerá visible por 15 segundos
+        QToolTip.showText(global_pos, tooltip_html, self.presets_tree, self.presets_tree.rect(), 15000)
+        print("DEBUG: QToolTip.showText ejecutado")
+
+
     def filter_presets(self, text):
         """Filtra los presets basado en el texto de búsqueda"""
         search_text = text.lower().strip()
@@ -619,3 +742,4 @@ class PresetsPanel(QWidget):
                 QMessageBox.warning(
                     self, "Error", f"No se pudo crear la carpeta: {str(e)}"
                 )
+

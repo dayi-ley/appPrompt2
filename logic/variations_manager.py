@@ -232,6 +232,7 @@ class VariationsManager:
                 for character_folder in os.listdir(self.characters_dir):
                     character_path = os.path.join(self.characters_dir, character_folder)
                     if os.path.isdir(character_path):
+                        # CAMBIO: Usar el nombre de la carpeta directamente
                         character_name = character_folder
                         variations_file = self.get_character_variations_file(character_name)
                         
@@ -239,7 +240,10 @@ class VariationsManager:
                         if os.path.exists(variations_file):
                             data = self.load_character_variations_data(character_name)
                             if data.get("variations", {}):
-                                characters.append(character_name)
+                                # CAMBIO: Usar el character_name del JSON, no el nombre de carpeta
+                                actual_character_name = data.get("character_name", character_name)
+                                characters.append(actual_character_name)
+                                print(f"Personaje encontrado: {actual_character_name} (carpeta: {character_folder})")
         except Exception as e:
             print(f"Error obteniendo personajes: {e}")
         

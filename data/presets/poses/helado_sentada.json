@@ -1,0 +1,19 @@
+{
+  "presets": {
+    "helado_sentada": {
+      "name": "helado sentada",
+      "categories": {
+        "Angulo": "((low angle)),((from below)),",
+        "Direccion mirada personaje": "looking at viewer,",
+        "Pose actitud global": "wide hips, ((standing)),",
+        "Pose brazos": "holding a pacifier,",
+        "Pose piernas": "one leg straight, other leg bent, pointed toe, slight arch back,",
+        "Orientacion personaje": "facing forward,",
+        "Nsfw": "(pubic hair), busty, pussy naked,cleft of venus pussy,",
+        "Objetos interaccion": "sucking popsicle,"
+      },
+      "images": [],
+      "created_at": "2025-08-13T18:11:15.494272"
+    }
+  }
+}

@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, 
     QLabel, QLineEdit, QMessageBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal  # Agregar pyqtSignal aquí
 from PyQt6.QtGui import QFont
 import os
 import json
@@ -11,6 +11,8 @@ from datetime import datetime
 
 class NewCharacterDialog(QDialog):
     """Diálogo para crear un nuevo personaje"""
+    
+    character_saved = pyqtSignal(str)  # Agregar esta línea - señal que emite el nombre del personaje
     
     def __init__(self, parent=None, category_grid=None):
         super().__init__(parent)
@@ -153,8 +155,12 @@ class NewCharacterDialog(QDialog):
         # Guardar el personaje
         try:
             self.save_character_data(name)
-            QMessageBox.information(self, "Éxito", f"Personaje '{name}' guardado exitosamente.")
+            # ELIMINAR ESTA LÍNEA: QMessageBox.information(self, "Éxito", f"Personaje '{name}' guardado exitosamente.")
             self.character_name = name
+            
+            # Emitir la señal para actualizar la lista de personajes
+            self.character_saved.emit(name)
+            
             self.accept()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al guardar el personaje: {str(e)}")

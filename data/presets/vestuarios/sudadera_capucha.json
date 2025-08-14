@@ -1,0 +1,14 @@
+{
+  "presets": {
+    "sudadera_capucha": {
+      "name": "sudadera capucha",
+      "categories": {
+        "Vestuario general": "hoodies, light blue hoodies,",
+        "Vestuario superior": "hoodies, light blue hoodies,",
+        "Ropa interior inferior": "black thong,"
+      },
+      "images": [],
+      "created_at": "2025-08-04T15:44:57.791068"
+    }
+  }
+}

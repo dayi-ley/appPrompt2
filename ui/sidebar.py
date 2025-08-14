@@ -203,11 +203,18 @@ class SidebarFrame(QFrame):
 
     def on_variation_saved(self, character_name, variation_name):
         """Maneja cuando se guarda una variación"""
+        print(f"📨 SEÑAL RECIBIDA: variation_saved para {character_name} - {variation_name}")
+        
         # Actualizar la lista de personajes si es necesario
         self.refresh_characters()
         
-        # Mostrar mensaje de confirmación en consola o log
-        print(f"Variación '{variation_name}' guardada para {character_name}")
+        # FORZAR actualización inmediata de variaciones
+        if hasattr(self, 'variations_panel'):
+            print("🔄 Actualizando variations_panel AHORA...")
+            self.variations_panel.load_variations()
+            print("✅ Actualización completada")
+        
+        print(f"✅ Proceso completo para '{variation_name}' en {character_name}")
 
     def get_current_character(self):
         """Obtiene el personaje actualmente seleccionado"""
@@ -478,13 +485,14 @@ class SidebarFrame(QFrame):
         """Añade un personaje a la lista o refresca la lista completa"""
         self.refresh_characters()
         
-        # Si se proporciona un nombre de personaje, seleccionarlo
+        # Si se proporciona un nombre de personaje, solo seleccionarlo visualmente
+        # pero NO cargar automáticamente sus datos
         if character_name:
             for i in range(self.character_list.count()):
                 item = self.character_list.item(i)
                 if item.data(Qt.ItemDataRole.UserRole) == character_name:
                     self.character_list.setCurrentItem(item)
-                    self.on_character_change(character_name)
+                    # ELIMINAR ESTA LÍNEA: self.on_character_change(character_name)
                     break
 
     def filter_characters(self, text):

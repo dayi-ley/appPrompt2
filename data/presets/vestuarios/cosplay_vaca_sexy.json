@@ -1,0 +1,15 @@
+{
+  "presets": {
+    "cosplay_vaca_sexy": {
+      "name": "cosplay vaca sexy",
+      "categories": {
+        "Vestuario general": "cow print microbikini,",
+        "Vestuario accesorios": "animal collar, leash, leash pull,",
+        "Ropa interior superior": "underwear, ",
+        "Ropa interior inferior": "micro thong, minithong,panties,"
+      },
+      "images": [],
+      "created_at": "2025-08-13T17:35:14.580940"
+    }
+  }
+}

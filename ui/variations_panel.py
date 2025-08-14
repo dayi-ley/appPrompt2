@@ -29,10 +29,63 @@ class VariationsPanel(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
         
+        # Header con título y botón de actualizar
+        header_layout = QHBoxLayout()
+        
         # Título
         title_label = QLabel("Variaciones")
         title_label.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        layout.addWidget(title_label)
+        header_layout.addWidget(title_label)
+        
+        # Espaciador
+        header_layout.addStretch()
+        
+        # Botón de actualizar (minimalista)
+        self.refresh_button = QPushButton("🔄")
+        self.refresh_button.setToolTip("Actualizar lista de variaciones")
+        self.refresh_button.clicked.connect(self.refresh_variations)
+        self.refresh_button.setMaximumWidth(30)
+        self.refresh_button.setMaximumHeight(30)
+        self.refresh_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                font-size: 16px;
+                padding: 4px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+            QPushButton:pressed {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+        """)
+        header_layout.addWidget(self.refresh_button)
+        
+        # Botón de eliminar (minimalista)
+        self.delete_button = QPushButton("🗑️")
+        self.delete_button.setToolTip("Eliminar variaciones")
+        self.delete_button.clicked.connect(self.show_delete_dialog)  # ← DESCOMENTA ESTA LÍNEA
+        self.delete_button.setMaximumWidth(30)
+        self.delete_button.setMaximumHeight(30)
+        self.delete_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                font-size: 16px;
+                padding: 4px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 100, 100, 0.2);
+            }
+            QPushButton:pressed {
+                background-color: rgba(255, 100, 100, 0.3);
+            }
+        """)
+        header_layout.addWidget(self.delete_button)
+        layout.addLayout(header_layout)
         
         # Árbol de variaciones
         self.variations_tree = QTreeWidget()
@@ -239,6 +292,50 @@ class VariationsPanel(QWidget):
                         self, "Error", 
                         "No se pudo copiar la variación"
                     )
+
+    def refresh_variations(self):
+        """Actualiza manualmente la lista de variaciones"""
+        print("🔄 Actualizando lista de variaciones...")
+        self.load_variations()
+        print("✅ Lista de variaciones actualizada")
+
+    def show_delete_dialog(self):
+        """Muestra diálogo simple para eliminar la variación seleccionada"""
+        current_item = self.variations_tree.currentItem()
+        if not current_item:
+            QMessageBox.information(self, "Información", "Selecciona una variación para eliminar")
+            return
+        
+        # Verificar si es una variación (no un personaje)
+        variation_data = current_item.data(0, Qt.ItemDataRole.UserRole)
+        if not variation_data:
+            QMessageBox.information(self, "Información", "Selecciona una variación para eliminar")
+            return
+        
+        character_name = current_item.parent().text(0)
+        variation_name = variation_data['variation_name']
+        
+        # Confirmar eliminación
+        reply = QMessageBox.question(
+            self, "Confirmar Eliminación",
+            f"¿Estás seguro de que deseas eliminar la variación '{variation_name}' del personaje '{character_name}'?\n\nEsta acción no se puede deshacer.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            success = self.variations_manager.delete_variation(character_name, variation_name)
+            if success:
+                QMessageBox.information(self, "Éxito", "Variación eliminada correctamente")
+                self.load_variations()  # Recargar la lista
+            else:
+                QMessageBox.warning(self, "Error", "No se pudo eliminar la variación")
+
+    def refresh_variations(self):
+        """Actualiza manualmente la lista de variaciones"""
+        print("🔄 Actualizando lista de variaciones...")
+        self.load_variations()
+        print("✅ Lista de variaciones actualizada")
 
 class SaveVariationDialog(QDialog):
     """Diálogo para guardar una nueva variación"""

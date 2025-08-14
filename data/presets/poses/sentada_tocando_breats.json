@@ -1,0 +1,15 @@
+{
+  "presets": {
+    "sentada_tocando_breats": {
+      "name": "sentada_tocando_breats",
+      "categories": {
+        "Angulo": "((high angle)),",
+        "Pose actitud global": "sitting, leaning forward,",
+        "Pose brazos": "breast grab, ",
+        "Pose piernas": "open legs,"
+      },
+      "images": [],
+      "created_at": "2025-08-04T17:04:18.674245"
+    }
+  }
+}

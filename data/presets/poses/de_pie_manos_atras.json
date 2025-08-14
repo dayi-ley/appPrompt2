@@ -1,0 +1,16 @@
+{
+  "presets": {
+    "de_pie_manos_atras": {
+      "name": "De pie_manos atras",
+      "categories": {
+        "Angulo": "((low angle)),",
+        "Postura cabeza": "head tilted forward,",
+        "Pose actitud global": "standing, shoulders slightly hunched,",
+        "Pose brazos": "hands clasped behind back,",
+        "Pose piernas": "feet close together, toes turned inward,"
+      },
+      "images": [],
+      "created_at": "2025-08-04T16:07:17.694899"
+    }
+  }
+}

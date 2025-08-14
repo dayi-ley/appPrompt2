@@ -122,7 +122,11 @@ class SaveOptionsDialog(QDialog):
     
     def select_new_character(self):
         """Abre la ventana para crear nuevo personaje"""
-        dialog = NewCharacterDialog(self)
+        dialog = NewCharacterDialog(self, self.category_grid)
+        
+        # Conectar la señal del diálogo a la señal del category_grid
+        dialog.character_saved.connect(self.category_grid.character_saved.emit)
+        
         if dialog.exec() == QDialog.DialogCode.Accepted:
             character_name = dialog.get_character_name()
             if character_name:
@@ -442,8 +446,15 @@ class VariationDialog(QDialog):
     def generate_variation_name(self, character_name):
         """Genera automáticamente el nombre de la variación"""
         try:
-            from logic.variations_manager import VariationsManager
-            variations_manager = VariationsManager()
+            # USAR la instancia del sidebar en lugar de crear una nueva
+            variations_manager = None
+            if self.sidebar and hasattr(self.sidebar, 'variations_manager'):
+                variations_manager = self.sidebar.variations_manager
+            
+            if not variations_manager:
+                # Solo como último recurso
+                from logic.variations_manager import VariationsManager
+                variations_manager = VariationsManager()
             
             character_data = variations_manager.get_character_variations(character_name)
             existing_variations = character_data.get("variations", {})
@@ -526,20 +537,23 @@ class VariationDialog(QDialog):
             )
             
             if success:
-                # Actualizar la pestaña de variaciones si está disponible
-                if self.sidebar and hasattr(self.sidebar, 'variations_panel'):
-                    self.sidebar.variations_panel.load_variations()
-                    print(f"Pestaña de variaciones actualizada")
-                
                 # Emitir señal de variación guardada si está disponible
                 if self.sidebar and hasattr(self.sidebar, 'variations_panel'):
+                    print("🔄 Emitiendo señal variation_saved...")
                     self.sidebar.variations_panel.variation_saved.emit(character, variation)
+                    
+                    # FORZAR actualización directa como respaldo
+                    print("🔄 Forzando actualización directa...")
+                    self.sidebar.variations_panel.load_variations()
+                    print("✅ Actualización directa completada")
+                    print(f"✅ Señal emitida para {character} - {variation}")
                 
                 QMessageBox.information(
                     self, "Éxito", 
                     f"Variación '{variation}' creada exitosamente para {character}\n"
                     f"Categorías guardadas: {len(current_values)}"
                 )
+                
                 
                 self.selected_character = character
                 self.variation_name = variation
