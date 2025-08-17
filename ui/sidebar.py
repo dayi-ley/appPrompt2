@@ -4,7 +4,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QPalette, QColor
 from ui.variations_panel import VariationsPanel
-from ui.presets_panel import PresetsPanel  # ← AGREGAR ESTA LÍNEA
+from ui.presets_panel import PresetsPanel
+from ui.sugeprompt_panel import SugePromptPanel  # ← NUEVA IMPORTACIÓN
 from logic.variations_manager import VariationsManager
 import os
 import json
@@ -116,6 +117,15 @@ class SidebarFrame(QFrame):
         # Cambiar esta línea:
         self.presets_panel = PresetsPanel(self.main_window)  # ← Pasar MainWindow en lugar de self
         self.tab_widget.addTab(self.presets_panel, "Presets")
+        
+        # ← NUEVA PESTAÑA SUGEPROMPT
+        self.sugeprompt_panel = SugePromptPanel(self.main_window)
+        self.tab_widget.addTab(self.sugeprompt_panel, "SugePrompt")
+        
+        # Configurar tooltips para las pestañas
+        self.tab_widget.setTabToolTip(0, "Gestión de Variaciones")
+        self.tab_widget.setTabToolTip(1, "Gestión de Presets")
+        self.tab_widget.setTabToolTip(2, "Sugerencias de Prompts")  # ← TOOLTIP COMPLETO
         
         content_layout.addWidget(self.tab_widget)
         layout.addWidget(self.content_widget)
