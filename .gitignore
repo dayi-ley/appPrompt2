@@ -1,12 +1,44 @@
 # Ignorar el entorno virtual
 appPrompt/
+venv/
+env/
+.venv/
 
 # Archivos de Python que no deben subirse
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# PyInstaller
+*.manifest
+*.spec
 
 # Configuración o archivos locales
 .env
 .DS_Store
 *.log
 *.sqlite3
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+*.backup
